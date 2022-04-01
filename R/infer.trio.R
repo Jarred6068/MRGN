@@ -1,3 +1,21 @@
+
+
+
+#' A wrapper function for get.freq(), Reg(), and PermReg() to infer an input trio
+#'
+#' This function takes in a matrix representing a trio (with or without confounding variables) and performs the 
+#' MRGN inference. it returns a vector containing the results of the coefficient and marginal tests 
+#' 
+#' @param trio A dataframe with at least 3 columns and the first column containing the genetic variant 
+#' @param gamma the minor allele frequency threshold for which the permutation test should be used
+#' @param alpha the rejection threshold
+#' @param nperms the number of permuations to perform for trios with rare variants
+#' @param verbose (logical) if TRUE results of the regressions are printed
+#' @export
+#' infer.trio()
+
+
+
 ####################################################################
 #a wrapper function for get.freq(), Reg(), and PermReg() to infer the trio
 #combines the functions from sections 1.1-1.2

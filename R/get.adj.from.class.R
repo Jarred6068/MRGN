@@ -1,4 +1,15 @@
 
+#' A function to obtain the adjacency matrix from an inferred trio class
+#'
+#' This function takes in a the inferred model class from class.vec() and regression results from infer.trio() and returns
+#' the correct adjacency matrix
+#' @param model a character string as returned by class.vec()
+#' @param reg.vec a vector of inference results as returned by infer.trio()
+#' @param cnames (optional) a character vector of names of the adjacency columns and rows
+#' @export
+#' get.adj.from.class()
+
+
 ####################################################################\
 # a simple function which returns the adjacency matrix based on the model classification
 get.adj.from.class=function(model=NULL, reg.vec=NULL, cnames=NULL){

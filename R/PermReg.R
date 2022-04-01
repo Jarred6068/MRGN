@@ -1,3 +1,16 @@
+
+
+#' this function wraps PermReg.helper.fn() to preform the permuted regression. Not intended for direct use
+#' 
+#' @param trio A dataframe with at least 3 columns and the first column containing the genetic variant 
+#' @param t.obs21 the t-statistic from Reg() represnting the test on beta21
+#' @param t.obs22 the t-statistic from Reg() representing the test on beta22
+#' @param p11 the p-value from the test on beta21
+#' @param p12 the p-value from the test on beta22
+#' @param m the number of permutations to perform
+#' PermReg()
+
+
 ####################################################################
 #this function uses PermReg.helper.fn() to preform the permuted regression
 #analysis for rare variants - section 1.2

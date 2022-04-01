@@ -1,15 +1,30 @@
+
+
+#' A function to obtain the adjacency matrix from an inferred trio class
+#'
+#' This function takes in a the true and inferred model classes as is returned by class.vec() or their adjacency matrices
+#' and the regression results from infer.trio() and returns the Precision, Recall, Specificity and False Omission Rate for 
+#' edge-inference
+#' 
+#' @param Truth the true model class or adjacency matrix
+#' @param Inferred the inferred model class or adjacency matrix)
+#' @param get.adj.inf (logical) use TRUE if inputs are class labels. default = FALSE
+#' @export
+#' get.metrics()
+
 ####################################################################
 # a function which returns the precision, recall, and F1-score metrics
 #between the true and inferred models for testing performance in simulations
-get.metrics=function(Truth=NULL, Inferred=NULL, reg.vec=NULL, get.adj.inf=FALSE){
+get.metrics=function(Truth=NULL, Inferred=NULL, get.adj.inf=FALSE){
 
   #get adjacency, convert to vector and remove diagonal entries
-  Truth.adj=as.vector(get.adj.from.class(Truth))[-c(1,5,9)]
   #handle input of adjacency matrix or model class label:
-  if(get.adj.inf==FALSE){
+  if(get.adj.inf==TRUE){
     Inf.adj=as.vector(get.adj.from.class(Inferred))[-c(1,5,9)]
+    Truth.adj=as.vector(get.adj.from.class(Truth))[-c(1,5,9)]
   }else{
     Inf.adj=as.vector(Inferred)[-c(1,5,9)]
+    Truth.adj=as.vector(Truth)[-c(1,5,9)]
   }
 
   #get true positive edges

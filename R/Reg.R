@@ -1,3 +1,13 @@
+
+
+
+#' A function which preforms the standard regressions between the nodes in the trio. Not intended for direct use
+#' 
+#' @param data A dataframe with at least 3 columns and the first column containing the genetic variant 
+#' @param verbose (logical) if TRUE the summary of the regressions is printed
+#' 
+#' PermReg()
+
 ####################################################################
 #A function which preforms the standard regressions from section 1.1 -step 1
 Reg=function(data=NULL, verbose=FALSE){
