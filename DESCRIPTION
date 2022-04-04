@@ -5,9 +5,15 @@ Authors@R:
     person("Jarred", "Kvamme", , "jarredk@uidaho.edu", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0001-7333-2370"))
     person("Audrey", "Fu", , "audreyf@uidaho.edu", role = c("aut")
-Description: This package uses the principle of mendelian randomization to infer a genetic network by implementing the MRGN general and trio-specific algorithms
+Description: This package uses the principle of mendelian randomization to infer a genetic network by implementing the MRGN general and trio-specific algorithms.
 License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
     license
 Encoding: UTF-8
+Depends: 
+    R (>= 4.1)
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.2
+LazyData: true
+Imports: 
+    prodlim,
+    MRPC
