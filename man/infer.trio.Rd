@@ -27,3 +27,6 @@ infer.trio(
 This function takes in a matrix representing a trio (with or without confounding variables) and performs the
 MRGN inference. it returns a vector containing the results of the coefficient and marginal tests
 }
+\examples{
+example.R
+}

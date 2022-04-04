@@ -6,8 +6,7 @@
 #' @param model a character string as returned by class.vec()
 #' @param reg.vec a vector of inference results as returned by infer.trio()
 #' @param cnames (optional) a character vector of names of the adjacency columns and rows
-#' @export
-#' get.adj.from.class()
+#' @export get.adj.from.class
 
 
 ####################################################################\

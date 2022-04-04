@@ -3,14 +3,13 @@
 #' A function to obtain the adjacency matrix from an inferred trio class
 #'
 #' This function takes in a the true and inferred model classes as is returned by class.vec() or their adjacency matrices
-#' and the regression results from infer.trio() and returns the Precision, Recall, Specificity and False Omission Rate for 
+#' and the regression results from infer.trio() and returns the Precision, Recall, Specificity and False Omission Rate for
 #' edge-inference
-#' 
+#'
 #' @param Truth the true model class or adjacency matrix
 #' @param Inferred the inferred model class or adjacency matrix)
 #' @param get.adj.inf (logical) use TRUE if inputs are class labels. default = FALSE
-#' @export
-#' get.metrics()
+#' @export get.metrics
 
 ####################################################################
 # a function which returns the precision, recall, and F1-score metrics

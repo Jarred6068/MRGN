@@ -11,9 +11,8 @@
 #' @param alpha the rejection threshold
 #' @param nperms the number of permuations to perform for trios with rare variants
 #' @param verbose (logical) if TRUE results of the regressions are printed
-#' @example example.R
-#' @export
-#' infer.trio()
+#' @examples example.R
+#' @export infer.trio
 
 
 

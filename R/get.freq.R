@@ -4,8 +4,7 @@
 #' where 0 = homozygous for the reference allele, 1 = heterozygous for the reference allele,
 #' and 2 = homozygous for the alternative allele. It returns the min(alternative, reference)
 #' @param V a vector of alternative allele counts at a given eQTL
-#' @export
-#' get.freq()
+#' @export get.freq
 
 
 ####################################################################

@@ -3,8 +3,7 @@
 #'
 #' This function takes in a vector of inferred classes from class.vec() and converts them to one of M0, M1, M2, M3, M4
 #' @param input a vector of inferred classes as returned by class.vec()
-#' @export
-#' get.freq()
+#' @export convert.cats
 
 ####################################################
 #a function to convert sub-categories to match 'model' in params
