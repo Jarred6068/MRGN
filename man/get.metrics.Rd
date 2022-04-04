@@ -4,14 +4,24 @@
 \alias{get.metrics}
 \title{A function to obtain the adjacency matrix from an inferred trio class}
 \usage{
-get.metrics(Truth = NULL, Inferred = NULL, get.adj.inf = FALSE)
+get.metrics(
+  Truth = NULL,
+  Inferred = NULL,
+  reg.vec = NULL,
+  get.adj.inf = FALSE,
+  get.adj.truth = FALSE
+)
 }
 \arguments{
 \item{Truth}{the true model class or adjacency matrix}
 
 \item{Inferred}{the inferred model class or adjacency matrix)}
 
-\item{get.adj.inf}{(logical) use TRUE if inputs are class labels. default = FALSE}
+\item{reg.vec}{used when Inferred is from MRGN, a vector of the regression output as obtained from infer.trio()}
+
+\item{get.adj.inf}{(logical) use TRUE if inferred inputs are class labels. default = FALSE}
+
+\item{get.adj.truth}{(logical) use TRUE if truth inputs are class labels. default = FALSE}
 }
 \description{
 This function takes in a the true and inferred model classes as is returned by class.vec() or their adjacency matrices

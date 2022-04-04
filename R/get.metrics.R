@@ -8,21 +8,28 @@
 #'
 #' @param Truth the true model class or adjacency matrix
 #' @param Inferred the inferred model class or adjacency matrix)
-#' @param get.adj.inf (logical) use TRUE if inputs are class labels. default = FALSE
+#' @param reg.vec used when Inferred is from MRGN, a vector of the regression output as obtained from infer.trio()
+#' @param get.adj.inf (logical) use TRUE if inferred inputs are class labels. default = FALSE
+#' @param get.adj.truth (logical) use TRUE if truth inputs are class labels. default = FALSE
 #' @export get.metrics
 
 ####################################################################
 # a function which returns the precision, recall, and F1-score metrics
 #between the true and inferred models for testing performance in simulations
-get.metrics=function(Truth=NULL, Inferred=NULL, get.adj.inf=FALSE){
+get.metrics=function(Truth=NULL, Inferred=NULL, reg.vec=NULL, get.adj.inf=FALSE, get.adj.truth=FALSE){
 
   #get adjacency, convert to vector and remove diagonal entries
   #handle input of adjacency matrix or model class label:
+
   if(get.adj.inf==TRUE){
-    Inf.adj=as.vector(get.adj.from.class(Inferred))[-c(1,5,9)]
-    Truth.adj=as.vector(get.adj.from.class(Truth))[-c(1,5,9)]
+    Inf.adj=as.vector(get.adj.from.class(Inferred, reg.vec = reg.vec))[-c(1,5,9)]
   }else{
     Inf.adj=as.vector(Inferred)[-c(1,5,9)]
+  }
+
+  if(get.adj.truth==TRUE){
+    Truth.adj=as.vector(get.adj.from.class(Truth))[-c(1,5,9)]
+  }else{
     Truth.adj=as.vector(Truth)[-c(1,5,9)]
   }
 
