@@ -12,17 +12,21 @@
 #' @param nperms the number of permuations to perform for trios with rare variants
 #' @param verbose (logical) if TRUE results of the regressions are printed
 #' @examples
-#' inference on a single trio
+#' #inference on a single trio
 #' result=infer.trio(M1trio)
-#' get the predicted topology
+#'
+#' #get the predicted topology
 #' which.model=class.vec(result)
 #' print(which.model)
-#' infer a set of 10 trios from the built in dataset exampleTrios:
+#'
+#'
+#' #infer a set of 10 trios from the built in dataset exampleTrios:
 #' result2 = sapply(exampleTrios[sample(1:10000, 10)], infer.trio)
-#' get the predicted topology
+#'
+#' #get the predicted topology
 #' models = apply(result2, 2, class.vec)
 #' print(models)
-#' @return a vector containin the topology and regression results for the input trio
+#' @return a vector of length = 13 containing the topology and regression results for the input trio
 #' @export infer.trio
 
 

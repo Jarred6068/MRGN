@@ -5,6 +5,7 @@
 #' This function takes in the output from infer.trio() and classifies it as one of the 5 model topologies given by
 #' Badsha and Fu, 2019. If the no topology is matched, it returns "Other"
 #' @param vec a binary vector of minimum length 6
+#' @return a character string representing one of the 5 topologies or "Other"
 #' @export class.vec
 
 ####################################################################
