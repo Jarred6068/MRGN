@@ -11,7 +11,18 @@
 #' @param alpha the rejection threshold
 #' @param nperms the number of permuations to perform for trios with rare variants
 #' @param verbose (logical) if TRUE results of the regressions are printed
-#' @examples example.R
+#' @examples
+#' inference on a single trio
+#' result=infer.trio(M1trio)
+#' get the predicted topology
+#' which.model=class.vec(result)
+#' print(which.model)
+#' infer a set of 10 trios from the built in dataset exampleTrios:
+#' result2 = sapply(exampleTrios[sample(1:10000, 10)], infer.trio)
+#' get the predicted topology
+#' models = apply(result2, 2, class.vec)
+#' print(models)
+#' @return a vector containin the topology and regression results for the input trio
 #' @export infer.trio
 
 

@@ -23,10 +23,22 @@ infer.trio(
 
 \item{verbose}{(logical) if TRUE results of the regressions are printed}
 }
+\value{
+a vector containin the topology and regression results for the input trio
+}
 \description{
 This function takes in a matrix representing a trio (with or without confounding variables) and performs the
 MRGN inference. it returns a vector containing the results of the coefficient and marginal tests
 }
 \examples{
-example.R
+inference on a single trio
+result=infer.trio(M1trio)
+get the predicted topology
+which.model=class.vec(result)
+print(which.model)
+infer a set of 10 trios from the built in dataset exampleTrios:
+result2 = sapply(exampleTrios[sample(1:10000, 10)], infer.trio)
+get the predicted topology
+models = apply(result2, 2, class.vec)
+print(models)
 }
