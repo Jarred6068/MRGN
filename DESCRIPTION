@@ -10,7 +10,7 @@ License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
     license
 Encoding: UTF-8
 Depends: 
-    R (>= 4.0.5),
+    R (>= 4.0.0),
     prodlim,
     MRPC
 Roxygen: list(markdown = TRUE)
