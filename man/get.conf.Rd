@@ -35,6 +35,4 @@ or methylation data and performs PC selection
 #fast example on 40 trios
 trio.with.conf=get.conf(trios=WBtrios[1:40], PCmat=WBscores)
 
-#slow example for a list of trios
-trios.with.confs=get.conf(trios=WBtrios, PCmat=WBscores)
 }
