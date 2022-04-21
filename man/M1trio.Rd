@@ -3,9 +3,9 @@
 \docType{data}
 \name{M1trio}
 \alias{M1trio}
-\title{An M1 trio with 1000 observations}
+\title{A simulated M1 trio with 1000 observations}
 \format{
-dataframe 1000 X 3
+dataframe 650 X 3
 }
 \usage{
 M1trio

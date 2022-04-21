@@ -40,7 +40,7 @@ print(which.model)
 
 
 #infer a set of 10 trios from the built in dataset exampleTrios:
-result2 = sapply(exampleTrios[sample(1:10000, 10)], infer.trio)
+result2 = sapply(exampleTrios[1:10], infer.trio)
 
 #get the predicted topology
 models = apply(result2, 2, class.vec)

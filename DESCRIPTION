@@ -1,6 +1,6 @@
 Package: MRGN
 Title: Medenlian Randomization Genomic Network
-Version: 0.0.0.9000
+Version: 1.0.0.1
 Authors@R: 
     c(person("Jarred", "Kvamme", , "jarredk@uidaho.edu", role = c("aut", "cre"),
     comment = c(ORCID = "0000-0001-7333-2370")),
@@ -10,13 +10,12 @@ License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
     license
 Encoding: UTF-8
 Depends: 
-    R (>= 4.0.0),
-    prodlim,
-    MRPC
+    R (>= 4.0.0)
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.2
 LazyData: true
 Imports: 
     prodlim,
-    MRPC
+    psych,
+    qvalue
 
