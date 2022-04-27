@@ -6,33 +6,40 @@
 \usage{
 get.conf(
   trios = NULL,
-  PCmat = NULL,
+  PCscores = NULL,
+  FDR = 0.1,
   alpha = 0.05,
   save.list = FALSE,
+  return.list = TRUE,
   save.path = "/path/to/save/location"
 )
 }
 \arguments{
-\item{trios}{either a list of data frames containing the trios or a single data frame with samples in rows and
-trios in the columns}
+\item{trios}{either (1) a list where each element contains a dataframe corresponding to a trio or (2) a single data
+frame with samples in rows and trios in the columns}
 
-\item{PCmat}{the rotated variables from the whole-genome level PCA}
+\item{PCscores}{a dataframe of the whole-genome PCA scores with observations in rows and PCs in columns}
 
-\item{alpha}{the rejection threshold for the pearson correlation test between each trio and the rotated variables}
+\item{FDR}{the false discovery rate (default = 0.10)}
 
-\item{save.list}{(logical) if TRUE the output is saved as a .RData object}
+\item{alpha}{the alpha level of the pearson correlation test used by psych::corr.test() (default = 0.05)}
+
+\item{save.list}{(logical) if TRUE the output is saved as a .RData object (default = FALSE)}
+
+\item{return.list}{(logical) if TRUE the list of the column indices of significant PCs detected for each trio
+is returned (default = TRUE)}
 
 \item{save.path}{string specifying the path name of the output}
 }
 \value{
-a list of dataframes where each element is a dataframe corresponding to a trio and its confounding PCs
+a list of the column indices of significant PCs detected for each trio
 }
 \description{
-This function takes in a list of trios and the rotated variables from the PCA on whole-genome level expression
+This function takes in a list of trios and the scores from the PCA on whole-genome level expression
 or methylation data and performs PC selection
 }
 \examples{
 #fast example on 40 trios
-trio.with.conf=get.conf(trios=WBtrios[1:40], PCmat=WBscores)
+trio.with.conf=get.conf(trios=WBtrios[1:40], PCscores=WBscores)
 
 }
