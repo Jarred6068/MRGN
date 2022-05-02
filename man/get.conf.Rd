@@ -8,7 +8,7 @@ get.conf(
   trios = NULL,
   PCscores = NULL,
   FDR = 0.1,
-  alpha = 0.05,
+  blocksize = 2000,
   save.list = FALSE,
   return.list = TRUE,
   save.path = "/path/to/save/location"
@@ -22,7 +22,7 @@ frame with samples in rows and trios in the columns}
 
 \item{FDR}{the false discovery rate (default = 0.10)}
 
-\item{alpha}{the alpha level of the pearson correlation test used by psych::corr.test() (default = 0.05)}
+\item{blocksize}{the number of columns to use in each block of correlation calculations passed to propagate::bigcor}
 
 \item{save.list}{(logical) if TRUE the output is saved as a .RData object (default = FALSE)}
 
@@ -39,7 +39,8 @@ This function takes in a list of trios and the scores from the PCA on whole-geno
 or methylation data and performs PC selection
 }
 \examples{
+\dontrun{
 #fast example on 40 trios
-trio.with.conf=get.conf(trios=WBtrios[1:40], PCscores=WBscores)
-
+trio.with.conf=get.conf(trios=WBtrios[1:40], PCscores=WBscores, blocksize=10)
+}
 }
