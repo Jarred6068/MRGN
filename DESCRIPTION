@@ -17,5 +17,5 @@ LazyData: true
 Imports: 
     prodlim,
     psych,
-    qvalue
-
+    qvalue,
+    propagate

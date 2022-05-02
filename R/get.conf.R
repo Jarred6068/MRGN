@@ -7,7 +7,6 @@
 #' @param trios either (1) a list where each element contains a dataframe corresponding to a trio or (2) a single data
 #' frame with samples in rows and trios in the columns
 #' @param PCscores a dataframe of the whole-genome PCA scores with observations in rows and PCs in columns
-#' @param alpha the alpha level of the pearson correlation test used by psych::corr.test() (default = 0.05)
 #' @param FDR the false discovery rate (default = 0.10)
 #' @param save.list (logical) if TRUE the output is saved as a .RData object (default = FALSE)
 #' @param return.list (logical) if TRUE the list of the column indices of significant PCs detected for each trio
@@ -16,12 +15,13 @@
 #' @return a list of the column indices of significant PCs detected for each trio
 #' @export get.conf
 #' @examples
+#' \dontrun{
 #' #fast example on 40 trios
 #' trio.with.conf=get.conf(trios=WBtrios[1:40], PCscores=WBscores)
-#'
+#'}
 
 
-get.conf=function(trios=NULL, PCscores=NULL, FDR=0.10, alpha = 0.05, save.list=FALSE,
+get.conf=function(trios=NULL, PCscores=NULL, FDR=0.10, save.list=FALSE,
                   return.list=TRUE, save.path="/path/to/save/location"){
 
   #if data entered as list convert to dataframe
@@ -40,7 +40,7 @@ get.conf=function(trios=NULL, PCscores=NULL, FDR=0.10, alpha = 0.05, save.list=F
   #find PCs that correlate with each trio
   for (m in 1:(dim(PCscores)[1]-1)) {
     corr.PCs <- psych::corr.test(PCscores[,m], triomat, use = 'pairwise.complete.obs',
-                                 adjust = "none", alpha = alpha)
+                                 adjust = "none")
     # The p values
     Pvalues <- corr.PCs$p
     Pvalues.nona <- Pvalues[!is.na(Pvalues)]
