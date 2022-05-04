@@ -27,14 +27,14 @@ PermReg.help.fn=function(perm.map=NULL, V=NULL, T1=NULL, T2=NULL, U=NULL, coln=N
 
     #section 1.2 step 1.1 eqn (4)
     coef.mat=as.data.frame(summary(lm(new.data[,3]~., data=new.data[,-3]))$coefficients)
-    wald.stat=coef.mat$`t value`[which(row.names(coef.mat)==colnames(new.data)[2])]
+    wald.stat=coef.mat$`t value`[3]
     #print(coef.mat)
 
   }else{
 
     #section 1.2 step 1.1 eqn (3)
     coef.mat=as.data.frame(summary(lm(new.data[,2]~., data=new.data[,-2]))$coefficients)
-    wald.stat=coef.mat$`t value`[which(row.names(coef.mat)==colnames(new.data)[3])]
+    wald.stat=coef.mat$`t value`[3]
     #print(coef.mat)
 
   }
