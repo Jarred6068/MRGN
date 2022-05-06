@@ -9,6 +9,7 @@ get.conf(
   PCscores = NULL,
   FDR = 0.1,
   blocksize = 2000,
+  return.for.trios = TRUE,
   save.list = FALSE,
   return.list = TRUE,
   save.path = "/path/to/save/location"
@@ -24,6 +25,9 @@ frame with samples in rows and trios in the columns}
 
 \item{blocksize}{the number of columns to use in each block of correlation calculations passed to propagate::bigcor}
 
+\item{return.for.trios}{(logical) if TRUE the column indices of the PCs associated with each trio are returned. If FALSE
+the column indices of PCs associated with each column of "trios" is returned. default=TRUE}
+
 \item{save.list}{(logical) if TRUE the output is saved as a .RData object (default = FALSE)}
 
 \item{return.list}{(logical) if TRUE the list of the column indices of significant PCs detected for each trio
@@ -32,7 +36,8 @@ is returned (default = TRUE)}
 \item{save.path}{string specifying the path name of the output}
 }
 \value{
-a list of the column indices of significant PCs detected for each trio
+default: a list of length = # of trios of the column indices of significant PCs detected for each trio. Alternatively,
+if return.for.trios = FALSE, a list of length=ncol(trios) of the column indices of significant PCs detected for each column of trios
 }
 \description{
 This function takes in a list of trios and the scores from the PCA on whole-genome level expression

@@ -9,12 +9,17 @@
 #' @param PCscores a dataframe of the whole-genome PCA scores with observations in rows and PCs in columns
 #' @param FDR the false discovery rate (default = 0.10)
 #' @param blocksize the number of columns to use in each block of correlation calculations passed to propagate::bigcor
+#' @param return.for.trios (logical) if TRUE the column indices of the PCs associated with each trio are returned. If FALSE
+#' the column indices of PCs associated with each column of "trios" is returned. default=TRUE
 #' @param save.list (logical) if TRUE the output is saved as a .RData object (default = FALSE)
 #' @param return.list (logical) if TRUE the list of the column indices of significant PCs detected for each trio
 #' is returned (default = TRUE)
 #' @param save.path string specifying the path name of the output
-#' @return a list of the column indices of significant PCs detected for each trio
+#' @return default: a list of length = # of trios of the column indices of significant PCs detected for each trio. Alternatively,
+#' if return.for.trios = FALSE, a list of length=ncol(trios) of the column indices of significant PCs detected for each column of trios
 #' @export get.conf
+#' @import propagate
+#' @import qvalue
 #' @examples
 #' \dontrun{
 #' #fast example on 40 trios
@@ -22,12 +27,12 @@
 #'}
 
 
-get.conf=function(trios=NULL, PCscores=NULL, FDR=0.10, blocksize=2000, save.list=FALSE,
+get.conf=function(trios=NULL, PCscores=NULL, FDR=0.10, blocksize=2000, return.for.trios=TRUE, save.list=FALSE,
                        return.list=TRUE, save.path="/path/to/save/location"){
 
   #if data entered as list convert to dataframe
   if(typeof(trios)=="list" & is.null(dim(trios))){
-    triomat=do.call("cbind.data.frame", trios)
+    triomat=do.call("cbind", trios)
   }else{
     triomat=trios
   }
@@ -46,17 +51,31 @@ get.conf=function(trios=NULL, PCscores=NULL, FDR=0.10, blocksize=2000, save.list
   indmat=apply(cormat[,], 2, q.from.cor, n=sample.sizes, fdr=FDR)
   #find the PCs that correlated with every column of the trio matrix
   sig.asso.pcs=apply(indmat[,],1, function(x){list(which(x))})
-  #return the significant PCs for each trio
+  #return the significant PCs for each trio or for each column in "trios"
+  if(return.for.trios==TRUE){
   final.list.sig.asso.pcs=apply(trio.indices, 1,
                                 function(x,y){ list(unique(unlist(y[x[1]:x[2]]))) },
                                 y=sig.asso.pcs)
+    if(return.list==TRUE){
+      return(final.list.sig.asso.pcs)
+    }
+    if(save.list==TRUE){
+      save(final.list.sig.asso.pcs, file = paste0(save.path,".RData"))
+    }
+
+
+  }else{
+
+    if(return.list==TRUE){
+      return(sig.asso.pcs)
+    }
+    if(save.list==TRUE){
+      save(sig.asso.pcs, file = paste0(save.path,".RData"))
+    }
+
+  }
   #returns the list of significantly associated PCs for each trio
-  if(return.list==TRUE){
-    return(final.list.sig.asso.pcs)
-  }
-  if(save.list==TRUE){
-    save(final.list.sig.asso.pcs, file = paste0(save.path,".RData"))
-  }
+
 
 
 }

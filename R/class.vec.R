@@ -7,6 +7,7 @@
 #' @param vec a binary vector of minimum length 6
 #' @return a character string representing one of the 5 topologies or "Other"
 #' @export class.vec
+#' @import prodlim
 
 ####################################################################
 #A function to classify each indicator vector returned by inf.trio()
