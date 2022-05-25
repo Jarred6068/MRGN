@@ -2,10 +2,10 @@
 
 
 #' A function which preforms the standard regressions between the nodes in the trio. Not intended for direct use
-#' 
-#' @param data A dataframe with at least 3 columns and the first column containing the genetic variant 
+#'
+#' @param data A dataframe with at least 3 columns and the first column containing the genetic variant
 #' @param verbose (logical) if TRUE the summary of the regressions is printed
-#' 
+#'
 #' PermReg()
 
 ####################################################################
@@ -20,7 +20,7 @@ Reg=function(data=NULL, verbose=FALSE){
   for(i in 2:3){
 
     #preform the regressions in step 1
-    model=lm(data[,i]~., data = data[,-i])
+    model=stats::lm(data[,i]~., data = data[,-i])
     if(verbose==TRUE){print(summary(model))}
     coefs=as.data.frame(summary(model)$coefficients)
     pvals=append(pvals, coefs$`Pr(>|t|)`[2:3])

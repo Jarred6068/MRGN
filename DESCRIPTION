@@ -1,13 +1,12 @@
 Package: MRGN
 Title: Medenlian Randomization Genomic Network
-Version: 1.2.3
+Version: 1.2.4
 Authors@R: 
     c(person("Jarred", "Kvamme", , "jarredk@uidaho.edu", role = c("aut", "cre"),
     comment = c(ORCID = "0000-0001-7333-2370")),
     person("Audrey", "Fu", , "audreyf@uidaho.edu", role = c("aut")))
 Description: This package uses the principle of mendelian randomization to infer a genetic network by implementing the MRGN general and trio-specific algorithms.
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+License: GPL (>= 3)
 Encoding: UTF-8
 Depends: 
     R (>= 4.0.0)
@@ -21,4 +20,3 @@ Imports:
     tmvtnorm,
     ff,
     propagate
-    

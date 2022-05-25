@@ -38,11 +38,11 @@ result=infer.trio(M1trio)
 which.model=class.vec(result)
 print(which.model)
 
-
-#infer a set of 10 trios from the built in dataset exampleTrios:
-result2 = sapply(exampleTrios[1:10], infer.trio)
-
+\dontrun{
+#fast example on 10 trios from the built in dataset WBtrios
+result2 = sapply(WBtrios[1:10], infer.trio)
 #get the predicted topology
 models = apply(result2, 2, class.vec)
 print(models)
+}
 }

@@ -19,11 +19,11 @@
 simData1P=function (N, P1, b0.1, b1.1, sd.1, G=NULL, u=NULL, gamma.u=NULL) {
 
   if(is.null(u)){
-    t <- rnorm(n = N, mean = b0.1 + b1.1 * P1, sd = sd.1)
+    t <- stats::rnorm(n = N, mean = b0.1 + b1.1 * P1, sd = sd.1)
   }else{
     U=G[,u]
     #gamma.u=runif(length(u), min = cs.range[1], max=cs.range[2])
-    t <- rnorm(n = N, mean = b0.1 + b1.1 * P1 + U%*%gamma.u, sd = sd.1)
+    t <- stats::rnorm(n = N, mean = b0.1 + b1.1 * P1 + U%*%gamma.u, sd = sd.1)
   }
 
   return(t)
@@ -49,11 +49,11 @@ simData1P=function (N, P1, b0.1, b1.1, sd.1, G=NULL, u=NULL, gamma.u=NULL) {
 simData2P=function (N, P1, P2, b0.1, b1.1, b1.2, sd.1, G=NULL, u=NULL, gamma.u=NULL) {
 
   if(is.null(u)){
-    t <- rnorm(n = N, mean = b0.1 + b1.1 * P1 + b1.2 * P2, sd = sd.1)
+    t <- stats::rnorm(n = N, mean = b0.1 + b1.1 * P1 + b1.2 * P2, sd = sd.1)
   }else{
     U=G[,u]
     #gamma.u=runif(length(u), min = cs.range[1], max = cs.range[2])
-    t <- rnorm(n = N, mean = b0.1 + b1.1 * P1 + b1.2 * P2 + U%*%gamma.u, sd = sd.1)
+    t <- stats::rnorm(n = N, mean = b0.1 + b1.1 * P1 + b1.2 * P2 + U%*%gamma.u, sd = sd.1)
   }
 
   return(t)
@@ -85,11 +85,11 @@ simData2P=function (N, P1, P2, b0.1, b1.1, b1.2, sd.1, G=NULL, u=NULL, gamma.u=N
 simDataNP=function (N, b0.1, sd.1, G=NULL, u=NULL, gamma.u = NULL) {
 
   if(is.null(u)){
-    t <- rnorm(n = N, mean = b0.1, sd = sd.1)
+    t <- stats::rnorm(n = N, mean = b0.1, sd = sd.1)
   }else{
     U=G[,u]
     #gamma.u=runif(length(u), min = cs.range[1], max = cs.range[2])
-    t <- rnorm(n = N, mean = b0.1 + U%*%gamma.u, sd = sd.1)
+    t <- stats::rnorm(n = N, mean = b0.1 + U%*%gamma.u, sd = sd.1)
   }
   return(t)
 }
@@ -145,11 +145,11 @@ simData=function (theta, model, b0.1, b.snp, b.med, sd.1, G=NULL, u=NULL){
 
   #confounder effects - allow 50% to be negative and 50% to be positive
   #different coefficients for each node U is a parent of
-  ct1 = rbinom(u, 1, 0.5)
-  ct2 = rbinom(u, 1, 0.5)
-  w1 = runif(u, min = 0.15, max = 0.5)
+  ct1 = stats::rbinom(u, 1, 0.5)
+  ct2 = stats::rbinom(u, 1, 0.5)
+  w1 = stats::runif(u, min = 0.15, max = 0.5)
   w1[which(ct1==1)]=-1*w1[which(ct1==1)]
-  w2 = runif(u, min = 0.15, max = 0.5)
+  w2 = stats::runif(u, min = 0.15, max = 0.5)
   w2[which(ct2==1)]=-1*w2[which(ct2==1)]
 
   V1 <- c(sample(c(0, 1, 2), size = N, replace = TRUE,
@@ -206,7 +206,7 @@ simData=function (theta, model, b0.1, b.snp, b.med, sd.1, G=NULL, u=NULL){
     T1.b <- simData2P(N = N, P1 = V1, P2 = T2.b, b0.1 = b0.1, b1.1 = b.snp, b1.2 = b.med, sd.1 = sd.1,
                       G = G, u = u.idx, gamma.u=w1)
 
-    coinToss <- rbinom(n = N, size = 1, prob = 0.5)
+    coinToss <- stats::rbinom(n = N, size = 1, prob = 0.5)
     T1 <- rep(0, N)
     T1[which(coinToss == 0)] <- T1.a[which(coinToss == 0)]
     T1[which(coinToss == 1)] <- T1.b[which(coinToss == 1)]

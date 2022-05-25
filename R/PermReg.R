@@ -1,8 +1,8 @@
 
 
 #' this function wraps PermReg.helper.fn() to preform the permuted regression. Not intended for direct use
-#' 
-#' @param trio A dataframe with at least 3 columns and the first column containing the genetic variant 
+#'
+#' @param trio A dataframe with at least 3 columns and the first column containing the genetic variant
 #' @param t.obs21 the t-statistic from Reg() represnting the test on beta21
 #' @param t.obs22 the t-statistic from Reg() representing the test on beta22
 #' @param p11 the p-value from the test on beta21
@@ -59,8 +59,8 @@ PermReg=function(trio=NULL, t.obs21=NULL, t.obs22=NULL, p11=NULL, p12=NULL, m=NU
 
   #Step 2.1 - calculating the nominal p-values using Theta21 and Theta22
 
-  nominal.p21=2 * (1 - pnorm(abs((t.obs21 - mean(Theta21))/sd(Theta21))))
-  nominal.p22=2 * (1 - pnorm(abs((t.obs22 - mean(Theta22))/sd(Theta22))))
+  nominal.p21=2 * (1 - stats::pnorm(abs((t.obs21 - mean(Theta21))/stats::sd(Theta21))))
+  nominal.p22=2 * (1 - stats::pnorm(abs((t.obs22 - mean(Theta22))/stats::sd(Theta22))))
 
   #concat pvalues
   pvals=c(p11, nominal.p21, p12, nominal.p22)

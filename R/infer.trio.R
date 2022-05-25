@@ -19,13 +19,13 @@
 #' which.model=class.vec(result)
 #' print(which.model)
 #'
-#'
-#' #infer a set of 10 trios from the built in dataset exampleTrios:
-#' result2 = sapply(exampleTrios[1:10], infer.trio)
-#'
+#' \dontrun{
+#' #fast example on 10 trios from the built in dataset WBtrios
+#' result2 = sapply(WBtrios[1:10], infer.trio)
 #' #get the predicted topology
 #' models = apply(result2, 2, class.vec)
 #' print(models)
+#' }
 #' @return a vector of length = 13 containing the topology and regression results for the input trio
 #' @export infer.trio
 
@@ -73,8 +73,8 @@ infer.trio=function(trio=NULL, gamma=0.05, alpha=0.01, nperms=10000, verbose=FAL
   xp=ifelse(pvals<alpha, 1, 0)
 
   #preform marginal tests
-  cors=c(cor.test(trio[,1], trio[,3],use="pairwise.complete.obs")$p.value,
-         cor.test(trio[,1], trio[,2],use="pairwise.complete.obs")$p.value)
+  cors=c(stats::cor.test(trio[,1], trio[,3],use="pairwise.complete.obs")$p.value,
+         stats::cor.test(trio[,1], trio[,2],use="pairwise.complete.obs")$p.value)
   #convert to indicator vector
   rp=ifelse(cors<alpha, 1, 0)
   #combine all useful stats - add indicator

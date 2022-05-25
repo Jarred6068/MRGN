@@ -36,7 +36,17 @@ is returned (default = TRUE)}
 \item{save.path}{string specifying the path name of the output}
 }
 \value{
-default: a list of length = # of trios of the column indices of significant PCs detected for each trio. Alternatively,
+a list of 4 elements containing:
+\describe{
+\item{sig.asso.pcs}{default: a list of length = The number of trios of the column indices of significant PCs detected for each trio
+Alternatively, if return.for.trios = FALSE, a list of length=ncol(trios) of the column indices of significant PCs detected
+for each column of trios}
+\item{pvalues}{a matrix of dimension \eqn{ncol(PCscores) X ncol(trios)} of the pvalues from the pearson correlation test on each set of correlations}
+\item{qvalues}{a matrix of dimension \eqn{ncol(PCscores) X ncol(trios)} of qvalues from each set of correlations}
+\item{cors}{the matrix of the calculated pairwise correlations of dimension \eqn{ncol(PCscores) X ncol(trios)}}
+\item{sig}{A matrix of logical values of dimension \eqn{ncol(PCscores) X ncol(trios)}}
+}
+a list of length = # of trios of the column indices of significant PCs detected for each trio. Alternatively,
 if return.for.trios = FALSE, a list of length=ncol(trios) of the column indices of significant PCs detected for each column of trios
 }
 \description{

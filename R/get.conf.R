@@ -15,7 +15,17 @@
 #' @param return.list (logical) if TRUE the list of the column indices of significant PCs detected for each trio
 #' is returned (default = TRUE)
 #' @param save.path string specifying the path name of the output
-#' @return default: a list of length = # of trios of the column indices of significant PCs detected for each trio. Alternatively,
+#' @return a list of 4 elements containing:
+#'   \describe{
+#'   \item{sig.asso.pcs}{default: a list of length = The number of trios of the column indices of significant PCs detected for each trio
+#'   Alternatively, if return.for.trios = FALSE, a list of length=ncol(trios) of the column indices of significant PCs detected
+#'   for each column of trios}
+#'   \item{pvalues}{a matrix of dimension \eqn{ncol(PCscores) X ncol(trios)} of the pvalues from the pearson correlation test on each set of correlations}
+#'   \item{qvalues}{a matrix of dimension \eqn{ncol(PCscores) X ncol(trios)} of qvalues from each set of correlations}
+#'   \item{cors}{the matrix of the calculated pairwise correlations of dimension \eqn{ncol(PCscores) X ncol(trios)}}
+#'   \item{sig}{A matrix of logical values of dimension \eqn{ncol(PCscores) X ncol(trios)}}
+#' }
+#'  a list of length = # of trios of the column indices of significant PCs detected for each trio. Alternatively,
 #' if return.for.trios = FALSE, a list of length=ncol(trios) of the column indices of significant PCs detected for each column of trios
 #' @export get.conf
 #' @import propagate
@@ -43,41 +53,55 @@ get.conf=function(trios=NULL, PCscores=NULL, FDR=0.10, blocksize=2000, return.fo
   #make colnames unique to avoid error in bigcor
   colnames(triomat) <- make.unique(colnames(triomat)) #duplicated colnames
   #get the sample sizes used in each pairwise correlation calculation
-  sample.sizes=apply(triomat,2, function(x) length(na.omit(x)))
+  sample.sizes=apply(triomat,2, function(x) length(S4Vectors::na.omit(x)))
 
   #calculate the correlations of each PC with the trios
   cormat=propagate::bigcor(triomat, PCscores, verbose = T, use="pairwise.complete.obs", size = blocksize)
   #perform the pearson correlation test, apply qvalue, and return which are significant
-  indmat=apply(cormat[,], 2, q.from.cor, n=sample.sizes, fdr=FDR)
+  indmat=apply(as.data.frame(cormat[,]), 2, q.from.cor, n=sample.sizes, fdr=FDR)
+
+  #extrac the correlations, qvalues, and significance determination from indmat
+  sig.mat=sapply(indmat, function(x) x$significant)
+  qvalues.mat=sapply(indmat, function(x) x$qvalue)
+  r.mat=sapply(indmat, function(x) x$cor)
+  p.mat=sapply(indmat, function(x) x$pvalue)
+  #naming
+  colnames(sig.mat)=colnames(qvalues.mat)=colnames(r.mat)=colnames(p.mat)=paste0("PC",1:dim(PCscores)[2])
+  row.names(sig.mat)=row.names(qvalues.mat)=row.names(r.mat)=row.names(p.mat)=make.unique(colnames(triomat))
   #find the PCs that correlated with every column of the trio matrix
-  sig.asso.pcs=apply(indmat[,],1, function(x){list(which(x))})
+  sig.asso.pcs=apply(sig.mat, 1, function(x){list(which(x))})
   #return the significant PCs for each trio or for each column in "trios"
   if(return.for.trios==TRUE){
   final.list.sig.asso.pcs=apply(trio.indices, 1,
                                 function(x,y){ list(unique(unlist(y[x[1]:x[2]]))) },
                                 y=sig.asso.pcs)
     if(return.list==TRUE){
-      return(final.list.sig.asso.pcs)
+      out.list = list(sig.asso.pcs=final.list.sig.asso.pcs,
+                      pvalues=t(p.mat),
+                      qvalues=t(qvalues.mat),
+                      cors = t(r.mat),
+                      sig = t(sig.mat))
+      return(out.list)
     }
     if(save.list==TRUE){
-      save(final.list.sig.asso.pcs, file = paste0(save.path,".RData"))
+      save(out.list, file = paste0(save.path,".RData"))
     }
 
 
   }else{
 
     if(return.list==TRUE){
-      return(sig.asso.pcs)
+      out.list=list(sig.asso.pcs = sig.asso.pcs,
+                    pvalues = t(p.mat),
+                    qvalues = t(qvalues.mat),
+                    cors = t(r.mat),
+                    sig = t(sig.mat))
+      return(out.list)
     }
     if(save.list==TRUE){
-      save(sig.asso.pcs, file = paste0(save.path,".RData"))
+      save(out.list, file = paste0(save.path,".RData"))
     }
-
   }
-  #returns the list of significantly associated PCs for each trio
-
-
-
 }
 
 #' A function to calculate the pearson correlation p-values and apply the qvalue correction
@@ -85,17 +109,20 @@ get.conf=function(trios=NULL, PCscores=NULL, FDR=0.10, blocksize=2000, return.fo
 #' @param r either (1) a single pearson correlation coefficient or (2) a vector of correlation coefficients
 #' @param n the sample size (if length(r)>1 then n must be a vector if sample sizes vary)
 #' @param fdr the false discovery rate
-#' @return a logical vector indicating significant correlations after qvalue correction
+#' @return an n X 3 dataframe containing the correlations, qvalues, and significance (logical)
 
 q.from.cor=function(r, n, fdr){
 
   #calculate t values from vector of correlations
   t=r*sqrt((n-2)/(1-r^2))
   #obtain the pvalue from two-tailed test
-  p=2 * (1 -pt(q = abs(t), df = n-2))
-  #apply qvalue correction and return significant entries
-  sig=qvalue::qvalue(p, fdr.level = fdr)$significant
-  return(sig)
+  p=2 * (1 -stats::pt(q = abs(t), df = n-2))
+  #apply qvalue correction
+  qval.str=qvalue::qvalue(p, fdr.level = fdr)
+  #extrac significance and qvalues and return
+  sig=qval.str$significant
+  qval=qval.str$qvalues
+  return(cbind.data.frame(significant=sig, qvalue=qval, cor=r, pvalue=p))
 
 }
 

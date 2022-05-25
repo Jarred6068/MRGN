@@ -9,8 +9,14 @@ get.freq(V = NULL)
 \arguments{
 \item{V}{a vector of alternative allele counts at a given eQTL}
 }
+\value{
+min(alternative,reference)
+}
 \description{
 This function takes in a vector V representing the counts of alternative alleles at an eQTL.
 where 0 = homozygous for the reference allele, 1 = heterozygous for the reference allele,
 and 2 = homozygous for the alternative allele. It returns the min(alternative, reference)
+}
+\examples{
+get.freq(M1trio$V1)
 }

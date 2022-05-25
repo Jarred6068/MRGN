@@ -14,7 +14,7 @@ q.from.cor(r, n, fdr)
 \item{fdr}{the false discovery rate}
 }
 \value{
-a logical vector indicating significant correlations after qvalue correction
+an n X 3 dataframe containing the correlations, qvalues, and significance (logical)
 }
 \description{
 A function to calculate the pearson correlation p-values and apply the qvalue correction
