@@ -12,6 +12,7 @@ get.conf(
   FDR = 0.1,
   lambda = NULL,
   alpha = 0.05,
+  method = c("correlation, regression"),
   return.for.trios = TRUE,
   save.list = FALSE,
   return.list = TRUE,
@@ -36,6 +37,9 @@ passed to \eqn{adjust.q()} is \eqn{seq(0.5, max(pvalues), 0.05)}}
 
 \item{alpha}{the test threshold for the bonferroni correacted pvalues when \eqn{apply.qval = FALSE}}
 
+\item{method}{the method to calculate the associated pcs. A character string specifying either "correlation" or "regression".
+Note that when \eqn{method = "regression"}, \eqn{return.for.trios} is forced to TRUE}
+
 \item{return.for.trios}{(logical) if \eqn{TRUE} the column indices of the PCs associated with each trio are returned. If FALSE
 the column indices of PCs associated with each column of "trios" is returned. default=TRUE}
 
@@ -56,9 +60,8 @@ for each column of trios}
 \item{qvalues}{a matrix of dimension \eqn{ncol(PCscores) X ncol(trios)} of qvalues from each set of correlations}
 \item{cors}{the matrix of the calculated pairwise correlations of dimension \eqn{ncol(PCscores) X ncol(trios)}}
 \item{sig}{A matrix of logical values of dimension \eqn{ncol(PCscores) X ncol(trios)}}
+\item{adj.p}{A matrix of dimension \eqn{ncol(PCscores) X ncol(trios)} of the adjusted p-values if \eqn{apply.qval = FALSE}}
 }
-a list of length = # of trios of the column indices of significant PCs detected for each trio. Alternatively,
-if return.for.trios = FALSE, a list of length=ncol(trios) of the column indices of significant PCs detected for each column of trios
 }
 \description{
 This function takes in a list of trios and the scores from the PCA on whole-genome level expression
@@ -67,10 +70,25 @@ or methylation data and performs PC selection
 \examples{
 
 \dontrun{
-#fast example on 40 trios using qvalue correction
-trio.conf=get.conf(trios=WBtrios[1:40], PCscores=WBscores, blocksize=10)
+#fast example on 40 trios using qvalue correction and correlation method
+trio.conf=get.conf(trios=WBtrios[1:40],
+                   PCscores=WBscores,
+                   blocksize=10,
+                   method = "correlation")
 
-#fast example on 40 trios using bonferroni correction
-trio.conf2=get.conf(trios=WBtrios[1:40], PCscores=WBscores, blocksize=10, apply.qval=FALSE)
+#fast example on 40 trios using bonferroni correction and correlation method
+trio.conf2=get.conf(trios=WBtrios[1:40],
+                    PCscores=WBscores,
+                    blocksize=10,
+                    apply.qval=FALSE,
+                    method = "correlation")
+
+#fast example on 40 trios using the qvalue correction and the regression method
+#Note: this method is slower than method = "correlation"
+trio.conf3=get.conf(trios=WBtrios[1:40],
+                    PCscores=WBscores,
+                    blocksize=10,
+                    apply.qval=TRUE,
+                    method = "regression")
 }
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/get.conf.R
 \name{adjust.q}
 \alias{adjust.q}
-\title{A function to calculate the pearson correlation p-values and apply the qvalue correction}
+\title{A wrapper function to apply the qvalue correction to a set of pvalues}
 \usage{
 adjust.q(p, fdr, lambda)
 }
@@ -14,8 +14,8 @@ adjust.q(p, fdr, lambda)
 \item{lambda}{The value of the tuning parameter to estimate \eqn{pi_0}. Must be in \eqn{[0,1)}}
 }
 \value{
-an n X 3 dataframe containing the correlations, qvalues, and significance (logical)
+an \eqn{n X 2} dataframe containing the qvalues, and significance (logical)
 }
 \description{
-A function to calculate the pearson correlation p-values and apply the qvalue correction
+A wrapper function to apply the qvalue correction to a set of pvalues
 }

@@ -15,6 +15,7 @@
 #' passed to \eqn{adjust.q()} is \eqn{seq(0.5, max(pvalues), 0.05)}
 #' @param alpha the test threshold for the bonferroni correacted pvalues when \eqn{apply.qval = FALSE}
 #' @param method the method to calculate the associated pcs. A character string specifying either "correlation" or "regression".
+#' Note that when \eqn{method = "regression"}, \eqn{return.for.trios} is forced to TRUE
 #' @param return.for.trios (logical) if \eqn{TRUE} the column indices of the PCs associated with each trio are returned. If FALSE
 #' the column indices of PCs associated with each column of "trios" is returned. default=TRUE
 #' @param save.list (logical) if TRUE the output is saved as a .RData object (default = FALSE)
@@ -30,20 +31,34 @@
 #'   \item{qvalues}{a matrix of dimension \eqn{ncol(PCscores) X ncol(trios)} of qvalues from each set of correlations}
 #'   \item{cors}{the matrix of the calculated pairwise correlations of dimension \eqn{ncol(PCscores) X ncol(trios)}}
 #'   \item{sig}{A matrix of logical values of dimension \eqn{ncol(PCscores) X ncol(trios)}}
+#'   \item{adj.p}{A matrix of dimension \eqn{ncol(PCscores) X ncol(trios)} of the adjusted p-values if \eqn{apply.qval = FALSE}}
 #' }
-#'  a list of length = # of trios of the column indices of significant PCs detected for each trio. Alternatively,
-#' if return.for.trios = FALSE, a list of length=ncol(trios) of the column indices of significant PCs detected for each column of trios
 #' @export get.conf
 #' @import propagate
 #' @import qvalue
 #' @examples
 #'
 #' \dontrun{
-#' #fast example on 40 trios using qvalue correction
-#' trio.conf=get.conf(trios=WBtrios[1:40], PCscores=WBscores, blocksize=10)
+#' #fast example on 40 trios using qvalue correction and correlation method
+#' trio.conf=get.conf(trios=WBtrios[1:40],
+#'                    PCscores=WBscores,
+#'                    blocksize=10,
+#'                    method = "correlation")
 #'
-#' #fast example on 40 trios using bonferroni correction
-#' trio.conf2=get.conf(trios=WBtrios[1:40], PCscores=WBscores, blocksize=10, apply.qval=FALSE)
+#' #fast example on 40 trios using bonferroni correction and correlation method
+#' trio.conf2=get.conf(trios=WBtrios[1:40],
+#'                     PCscores=WBscores,
+#'                     blocksize=10,
+#'                     apply.qval=FALSE,
+#'                     method = "correlation")
+#'
+#' #fast example on 40 trios using the qvalue correction and the regression method
+#' #Note: this method is slower than method = "correlation"
+#' trio.conf3=get.conf(trios=WBtrios[1:40],
+#'                     PCscores=WBscores,
+#'                     blocksize=10,
+#'                     apply.qval=TRUE,
+#'                     method = "regression")
 #'}
 
 
@@ -51,7 +66,7 @@ get.conf=function(trios=NULL, PCscores=NULL, blocksize=2000, apply.qval=TRUE, FD
                   method = c("correlation, regression"), return.for.trios=TRUE, save.list=FALSE, return.list=TRUE,
                   save.path="/path/to/save/location"){
 
-  method=match.arg(method)
+  #method=match.arg(method)
   #if data entered as list convert to dataframe
   if(typeof(trios)=="list" & is.null(dim(trios))){
     triomat=do.call("cbind", trios)
@@ -71,10 +86,11 @@ get.conf=function(trios=NULL, PCscores=NULL, blocksize=2000, apply.qval=TRUE, FD
 
   switch(method, regression = {
 
-    warning("method = regression, forcing return.for.trios==TRUE")
+    message("method = \"regression\", forcing return.for.trios==TRUE")
     return.for.trios=TRUE
     pc.list=as.list(as.data.frame(PCscores))
     genes=triomat[,-seq(1,dim(triomat)[2], 3)]
+    message("Applying: method = \"regression\", this may take a few second...")
     p.mat=sapply(pc.list, p.from.reg, genes = genes)
     r.mat = as.data.frame(cormat[,])
 
@@ -153,12 +169,12 @@ get.conf=function(trios=NULL, PCscores=NULL, blocksize=2000, apply.qval=TRUE, FD
 }
 
 
-#' A function to calculate the pearson correlation p-values and apply the qvalue correction
+#' A wrapper function to apply the qvalue correction to a set of pvalues
 #'
 #' @param p a vector of p.values to be passed to qvalue::qvalue()
 #' @param fdr the false discovery rate
 #' @param lambda The value of the tuning parameter to estimate \eqn{pi_0}. Must be in \eqn{[0,1)}
-#' @return an n X 3 dataframe containing the correlations, qvalues, and significance (logical)
+#' @return an \eqn{n X 2} dataframe containing the qvalues, and significance (logical)
 
 
 
@@ -179,8 +195,8 @@ adjust.q=function(p, fdr, lambda){
 #' A function to calculate the pearson correlation p-values
 #'
 #' @param r either (1) a single pearson correlation coefficient or (2) a vector of correlation coefficients
-#' @param n the sample size (if length(r)>1 then n must be a vector if sample sizes vary)
-#' @return an n X 3 dataframe containing the correlations and pvalues
+#' @param n the sample size (if \eqn{length(r)>1} then n must be a vector of sample sizes)
+#' @return an \eqn{n X 2} dataframe containing the correlations and pvalues
 
 
 
@@ -192,11 +208,12 @@ p.from.cor=function(r, n){
   return(cbind.data.frame(pvalue=p,cor=r))
 }
 
-#' A function to calculate the pearson correlation p-values
+#' A function to perform the regression of a possible confounding pc aganst all pairs of cis and trans genes given
+#' in \eqn{genes}
 #'
-#' @param r either (1) a single pearson correlation coefficient or (2) a vector of correlation coefficients
-#' @param n the sample size (if length(r)>1 then n must be a vector if sample sizes vary)
-#' @return an n X 3 dataframe containing the correlations and pvalues
+#' @param pc a vector of scores from a given pc (i.e a single column of \eqn{PCscores} in \eqn{get.conf()})
+#' @param genes an \eqn{n X m} dataframe of cis and trans gene pairs of trios
+#' @return an \eqn{1 X (m/2)} vector of pvalues from corresponding to the overall \eqn{F} of the regression
 
 
 p.from.reg=function(pc, genes){

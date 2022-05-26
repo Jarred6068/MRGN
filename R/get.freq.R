@@ -15,7 +15,7 @@
 get.freq=function(V=NULL){
   #used in step 2
   #remove missing values
-  V=S4Vectors::na.omit(V)
+  V=na.omit(V)
   #count the alternative alleles
   alternative = sum(V)/(2*length(V))
   reference=1-alternative

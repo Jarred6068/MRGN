@@ -9,10 +9,10 @@ p.from.cor(r, n)
 \arguments{
 \item{r}{either (1) a single pearson correlation coefficient or (2) a vector of correlation coefficients}
 
-\item{n}{the sample size (if length(r)>1 then n must be a vector if sample sizes vary)}
+\item{n}{the sample size (if \eqn{length(r)>1} then n must be a vector of sample sizes)}
 }
 \value{
-an n X 3 dataframe containing the correlations and pvalues
+an \eqn{n X 2} dataframe containing the correlations and pvalues
 }
 \description{
 A function to calculate the pearson correlation p-values
