@@ -7,8 +7,11 @@
 get.conf(
   trios = NULL,
   PCscores = NULL,
-  FDR = 0.1,
   blocksize = 2000,
+  apply.qval = TRUE,
+  FDR = 0.1,
+  lambda = NULL,
+  alpha = 0.05,
   return.for.trios = TRUE,
   save.list = FALSE,
   return.list = TRUE,
@@ -21,11 +24,19 @@ frame with samples in rows and trios in the columns}
 
 \item{PCscores}{a dataframe of the whole-genome PCA scores with observations in rows and PCs in columns}
 
-\item{FDR}{the false discovery rate (default = 0.10)}
-
 \item{blocksize}{the number of columns to use in each block of correlation calculations passed to propagate::bigcor}
 
-\item{return.for.trios}{(logical) if TRUE the column indices of the PCs associated with each trio are returned. If FALSE
+\item{apply.qval}{(logical) \eqn{default = TRUE} applies the qvalue adjustment to each set of correlations between a PC
+and the columns of \eqn{trios}. If \eqn{FALSE}, the bonferroni correction is applied.}
+
+\item{FDR}{the false discovery rate (default = 0.10)}
+
+\item{lambda}{he value of the tuning parameter to estimate \eqn{pi_0}. Must be between 0,1. If is.null(lambda) the default
+passed to \eqn{adjust.q()} is \eqn{seq(0.5, max(pvalues), 0.05)}}
+
+\item{alpha}{the test threshold for the bonferroni correacted pvalues when \eqn{apply.qval = FALSE}}
+
+\item{return.for.trios}{(logical) if \eqn{TRUE} the column indices of the PCs associated with each trio are returned. If FALSE
 the column indices of PCs associated with each column of "trios" is returned. default=TRUE}
 
 \item{save.list}{(logical) if TRUE the output is saved as a .RData object (default = FALSE)}
@@ -54,8 +65,12 @@ This function takes in a list of trios and the scores from the PCA on whole-geno
 or methylation data and performs PC selection
 }
 \examples{
+
 \dontrun{
-#fast example on 40 trios
-trio.with.conf=get.conf(trios=WBtrios[1:40], PCscores=WBscores, blocksize=10)
+#fast example on 40 trios using qvalue correction
+trio.conf=get.conf(trios=WBtrios[1:40], PCscores=WBscores, blocksize=10)
+
+#fast example on 40 trios using bonferroni correction
+trio.conf2=get.conf(trios=WBtrios[1:40], PCscores=WBscores, blocksize=10, apply.qval=FALSE)
 }
 }

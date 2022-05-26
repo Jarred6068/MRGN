@@ -7,9 +7,14 @@
 #' @param trios either (1) a list where each element contains a dataframe corresponding to a trio or (2) a single data
 #' frame with samples in rows and trios in the columns
 #' @param PCscores a dataframe of the whole-genome PCA scores with observations in rows and PCs in columns
-#' @param FDR the false discovery rate (default = 0.10)
 #' @param blocksize the number of columns to use in each block of correlation calculations passed to propagate::bigcor
-#' @param return.for.trios (logical) if TRUE the column indices of the PCs associated with each trio are returned. If FALSE
+#' @param apply.qval (logical) \eqn{default = TRUE} applies the qvalue adjustment to each set of correlations between a PC
+#' and the columns of \eqn{trios}. If \eqn{FALSE}, the bonferroni correction is applied.
+#' @param FDR the false discovery rate (default = 0.10)
+#' @param lambda he value of the tuning parameter to estimate \eqn{pi_0}. Must be between 0,1. If is.null(lambda) the default
+#' passed to \eqn{adjust.q()} is \eqn{seq(0.5, max(pvalues), 0.05)}
+#' @param alpha the test threshold for the bonferroni correacted pvalues when \eqn{apply.qval = FALSE}
+#' @param return.for.trios (logical) if \eqn{TRUE} the column indices of the PCs associated with each trio are returned. If FALSE
 #' the column indices of PCs associated with each column of "trios" is returned. default=TRUE
 #' @param save.list (logical) if TRUE the output is saved as a .RData object (default = FALSE)
 #' @param return.list (logical) if TRUE the list of the column indices of significant PCs detected for each trio
@@ -31,14 +36,18 @@
 #' @import propagate
 #' @import qvalue
 #' @examples
+#'
 #' \dontrun{
-#' #fast example on 40 trios
-#' trio.with.conf=get.conf(trios=WBtrios[1:40], PCscores=WBscores, blocksize=10)
+#' #fast example on 40 trios using qvalue correction
+#' trio.conf=get.conf(trios=WBtrios[1:40], PCscores=WBscores, blocksize=10)
+#'
+#' #fast example on 40 trios using bonferroni correction
+#' trio.conf2=get.conf(trios=WBtrios[1:40], PCscores=WBscores, blocksize=10, apply.qval=FALSE)
 #'}
 
 
-get.conf=function(trios=NULL, PCscores=NULL, FDR=0.10, blocksize=2000, return.for.trios=TRUE, save.list=FALSE,
-                       return.list=TRUE, save.path="/path/to/save/location"){
+get.conf=function(trios=NULL, PCscores=NULL, blocksize=2000, apply.qval=TRUE, FDR=0.10, lambda=NULL, alpha=0.05,
+                  return.for.trios=TRUE, save.list=FALSE, return.list=TRUE, save.path="/path/to/save/location"){
 
   #if data entered as list convert to dataframe
   if(typeof(trios)=="list" & is.null(dim(trios))){
@@ -58,16 +67,24 @@ get.conf=function(trios=NULL, PCscores=NULL, FDR=0.10, blocksize=2000, return.fo
   #calculate the correlations of each PC with the trios
   cormat=propagate::bigcor(triomat, PCscores, verbose = T, use="pairwise.complete.obs", size = blocksize)
   #perform the pearson correlation test, apply qvalue, and return which are significant
-  indmat=apply(as.data.frame(cormat[,]), 2, q.from.cor, n=sample.sizes, fdr=FDR)
-
-  #extrac the correlations, qvalues, and significance determination from indmat
-  sig.mat=sapply(indmat, function(x) x$significant)
-  qvalues.mat=sapply(indmat, function(x) x$qvalue)
-  r.mat=sapply(indmat, function(x) x$cor)
-  p.mat=sapply(indmat, function(x) x$pvalue)
+  pr.mat=apply(as.data.frame(cormat[,]), 2, p.from.cor, n=sample.sizes)
+  #extract the pvalues and correlations
+  r.mat = sapply(pr.mat, function(x) x$cor)
+  p.mat = sapply(pr.mat, function(x) x$pvalue)
+  #perform the qvalue correction
+  if(apply.qval==TRUE){
+    qsig.mat = apply(p.mat, 2, adjust.q, fdr = FDR, lambda = lambda)
+    sig.mat = sapply(qsig.mat, function(x) x$significant)
+    q.mat = sapply(qsig.mat, function(x) x$qvalue)
+    p.adj.mat = matrix(NA, nrow = nrow(p.mat), ncol = ncol(p.mat))
+  }else{
+    p.adj.mat = apply(p.mat, 2, stats::p.adjust, method="bonferroni")
+    sig.mat = apply(p.adj.mat, 2, function(x) x<=0.05)
+    q.mat = matrix(NA, nrow = nrow(p.mat), ncol = ncol(p.mat))
+  }
   #naming
-  colnames(sig.mat)=colnames(qvalues.mat)=colnames(r.mat)=colnames(p.mat)=paste0("PC",1:dim(PCscores)[2])
-  row.names(sig.mat)=row.names(qvalues.mat)=row.names(r.mat)=row.names(p.mat)=make.unique(colnames(triomat))
+  colnames(sig.mat)=colnames(q.mat)=colnames(r.mat)=colnames(p.mat)=colnames(p.adj.mat)=paste0("PC",1:dim(PCscores)[2])
+  row.names(sig.mat)=row.names(q.mat)=row.names(r.mat)=row.names(p.mat)=row.names(p.adj.mat)=make.unique(colnames(triomat))
   #find the PCs that correlated with every column of the trio matrix
   sig.asso.pcs=apply(sig.mat, 1, function(x){list(which(x))})
   #return the significant PCs for each trio or for each column in "trios"
@@ -78,9 +95,10 @@ get.conf=function(trios=NULL, PCscores=NULL, FDR=0.10, blocksize=2000, return.fo
     if(return.list==TRUE){
       out.list = list(sig.asso.pcs=final.list.sig.asso.pcs,
                       pvalues=t(p.mat),
-                      qvalues=t(qvalues.mat),
+                      qvalues=t(q.mat),
                       cors = t(r.mat),
-                      sig = t(sig.mat))
+                      sig = t(sig.mat),
+                      adj.p = t(p.adj.mat))
       return(out.list)
     }
     if(save.list==TRUE){
@@ -93,9 +111,10 @@ get.conf=function(trios=NULL, PCscores=NULL, FDR=0.10, blocksize=2000, return.fo
     if(return.list==TRUE){
       out.list=list(sig.asso.pcs = sig.asso.pcs,
                     pvalues = t(p.mat),
-                    qvalues = t(qvalues.mat),
+                    qvalues = t(q.mat),
                     cors = t(r.mat),
-                    sig = t(sig.mat))
+                    sig = t(sig.mat),
+                    adj.p = t(p.adj.mat))
       return(out.list)
     }
     if(save.list==TRUE){
@@ -106,23 +125,46 @@ get.conf=function(trios=NULL, PCscores=NULL, FDR=0.10, blocksize=2000, return.fo
 
 #' A function to calculate the pearson correlation p-values and apply the qvalue correction
 #'
-#' @param r either (1) a single pearson correlation coefficient or (2) a vector of correlation coefficients
-#' @param n the sample size (if length(r)>1 then n must be a vector if sample sizes vary)
+#' @param p a vector of p.values to be passed to qvalue::qvalue()
 #' @param fdr the false discovery rate
+#' @param lambda The value of the tuning parameter to estimate \eqn{pi_0}. Must be in \eqn{[0,1)}
 #' @return an n X 3 dataframe containing the correlations, qvalues, and significance (logical)
 
-q.from.cor=function(r, n, fdr){
+adjust.q=function(p, fdr, lambda){
+  #apply qvalue correction
+  if(is.null(lambda)){
+    qval.str=qvalue::qvalue(p, fdr.level = fdr, lambda=seq(0.05, max(p), 0.05))
+  }else{
+    qval.str=qvalue::qvalue(p, fdr.level = fdr, lambda=lambda)
+  }
+  #extrac significance and qvalues and return
+  sig=qval.str$significant
+  qval=qval.str$qvalues
+  return(cbind.data.frame(significant=sig, qvalue=qval))
+}
 
+#' A function to calculate the pearson correlation p-values
+#'
+#' @param r either (1) a single pearson correlation coefficient or (2) a vector of correlation coefficients
+#' @param n the sample size (if length(r)>1 then n must be a vector if sample sizes vary)
+#' @return an n X 3 dataframe containing the correlations and pvalues
+
+p.from.cor=function(r, n){
   #calculate t values from vector of correlations
   t=r*sqrt((n-2)/(1-r^2))
   #obtain the pvalue from two-tailed test
   p=2 * (1 -stats::pt(q = abs(t), df = n-2))
-  #apply qvalue correction
-  qval.str=qvalue::qvalue(p, fdr.level = fdr)
-  #extrac significance and qvalues and return
-  sig=qval.str$significant
-  qval=qval.str$qvalues
-  return(cbind.data.frame(significant=sig, qvalue=qval, cor=r, pvalue=p))
-
+  return(cbind.data.frame(pvalue=p,cor=r))
 }
+
+
+
+
+
+
+
+
+
+
+
 
