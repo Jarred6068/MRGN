@@ -14,6 +14,7 @@
 #' @param lambda he value of the tuning parameter to estimate \eqn{pi_0}. Must be between 0,1. If is.null(lambda) the default
 #' passed to \eqn{adjust.q()} is \eqn{seq(0.5, max(pvalues), 0.05)}
 #' @param alpha the test threshold for the bonferroni correacted pvalues when \eqn{apply.qval = FALSE}
+#' @param method the method to calculate the associated pcs. A character string specifying either "correlation" or "regression".
 #' @param return.for.trios (logical) if \eqn{TRUE} the column indices of the PCs associated with each trio are returned. If FALSE
 #' the column indices of PCs associated with each column of "trios" is returned. default=TRUE
 #' @param save.list (logical) if TRUE the output is saved as a .RData object (default = FALSE)
@@ -47,8 +48,10 @@
 
 
 get.conf=function(trios=NULL, PCscores=NULL, blocksize=2000, apply.qval=TRUE, FDR=0.10, lambda=NULL, alpha=0.05,
-                  return.for.trios=TRUE, save.list=FALSE, return.list=TRUE, save.path="/path/to/save/location"){
+                  method = c("correlation, regression"), return.for.trios=TRUE, save.list=FALSE, return.list=TRUE,
+                  save.path="/path/to/save/location"){
 
+  method=match.arg(method)
   #if data entered as list convert to dataframe
   if(typeof(trios)=="list" & is.null(dim(trios))){
     triomat=do.call("cbind", trios)
@@ -63,14 +66,27 @@ get.conf=function(trios=NULL, PCscores=NULL, blocksize=2000, apply.qval=TRUE, FD
   colnames(triomat) <- make.unique(colnames(triomat)) #duplicated colnames
   #get the sample sizes used in each pairwise correlation calculation
   sample.sizes=apply(triomat,2, function(x) length(S4Vectors::na.omit(x)))
-
   #calculate the correlations of each PC with the trios
   cormat=propagate::bigcor(triomat, PCscores, verbose = T, use="pairwise.complete.obs", size = blocksize)
-  #perform the pearson correlation test, apply qvalue, and return which are significant
-  pr.mat=apply(as.data.frame(cormat[,]), 2, p.from.cor, n=sample.sizes)
-  #extract the pvalues and correlations
-  r.mat = sapply(pr.mat, function(x) x$cor)
-  p.mat = sapply(pr.mat, function(x) x$pvalue)
+
+  switch(method, regression = {
+
+    warning("method = regression, forcing return.for.trios==TRUE")
+    return.for.trios=TRUE
+    pc.list=as.list(as.data.frame(PCscores))
+    genes=triomat[,-seq(1,dim(triomat)[2], 3)]
+    p.mat=sapply(pc.list, p.from.reg, genes = genes)
+    r.mat = as.data.frame(cormat[,])
+
+  }, correlation = {
+    #perform the pearson correlation test, apply qvalue, and return which are significant
+    pr.mat=apply(as.data.frame(cormat[,]), 2, p.from.cor, n=sample.sizes)
+    #extract the pvalues and correlations
+    r.mat = sapply(pr.mat, function(x) x$cor)
+    p.mat = sapply(pr.mat, function(x) x$pvalue)
+
+  }, stop("Method not included or missing"))
+
   #perform the qvalue correction
   if(apply.qval==TRUE){
     qsig.mat = apply(p.mat, 2, adjust.q, fdr = FDR, lambda = lambda)
@@ -79,19 +95,31 @@ get.conf=function(trios=NULL, PCscores=NULL, blocksize=2000, apply.qval=TRUE, FD
     p.adj.mat = matrix(NA, nrow = nrow(p.mat), ncol = ncol(p.mat))
   }else{
     p.adj.mat = apply(p.mat, 2, stats::p.adjust, method="bonferroni")
-    sig.mat = apply(p.adj.mat, 2, function(x) x<=0.05)
+    sig.mat = apply(p.adj.mat, 2, function(x) x<=alpha)
     q.mat = matrix(NA, nrow = nrow(p.mat), ncol = ncol(p.mat))
   }
-  #naming
-  colnames(sig.mat)=colnames(q.mat)=colnames(r.mat)=colnames(p.mat)=colnames(p.adj.mat)=paste0("PC",1:dim(PCscores)[2])
-  row.names(sig.mat)=row.names(q.mat)=row.names(r.mat)=row.names(p.mat)=row.names(p.adj.mat)=make.unique(colnames(triomat))
   #find the PCs that correlated with every column of the trio matrix
   sig.asso.pcs=apply(sig.mat, 1, function(x){list(which(x))})
   #return the significant PCs for each trio or for each column in "trios"
+
   if(return.for.trios==TRUE){
-  final.list.sig.asso.pcs=apply(trio.indices, 1,
-                                function(x,y){ list(unique(unlist(y[x[1]:x[2]]))) },
-                                y=sig.asso.pcs)
+    switch(method, regression = {
+      #naming
+      colnames(sig.mat)=colnames(q.mat)=colnames(r.mat)=colnames(p.mat)=colnames(p.adj.mat)=paste0("PC",1:dim(PCscores)[2])
+      row.names(sig.mat)=row.names(q.mat)=row.names(p.mat)=row.names(p.adj.mat)=paste0("trio", 1:(dim(triomat)[2]/3))
+      row.names(r.mat)=colnames(triomat)
+      #final list of pcs for trios
+      final.list.sig.asso.pcs=sig.asso.pcs
+    }, correlation = {
+      #naming
+      colnames(sig.mat)=colnames(q.mat)=colnames(r.mat)=colnames(p.mat)=colnames(p.adj.mat)=paste0("PC",1:dim(PCscores)[2])
+      row.names(sig.mat)=row.names(q.mat)=row.names(r.mat)=row.names(p.mat)=row.names(p.adj.mat)=make.unique(colnames(triomat))
+      #final list of pcs for trios
+      final.list.sig.asso.pcs=apply(trio.indices, 1,
+                                    function(x,y){ list(unique(unlist(y[x[1]:x[2]]))) },
+                                    y=sig.asso.pcs)
+    })
+
     if(return.list==TRUE){
       out.list = list(sig.asso.pcs=final.list.sig.asso.pcs,
                       pvalues=t(p.mat),
@@ -117,11 +145,13 @@ get.conf=function(trios=NULL, PCscores=NULL, blocksize=2000, apply.qval=TRUE, FD
                     adj.p = t(p.adj.mat))
       return(out.list)
     }
+
     if(save.list==TRUE){
       save(out.list, file = paste0(save.path,".RData"))
     }
   }
 }
+
 
 #' A function to calculate the pearson correlation p-values and apply the qvalue correction
 #'
@@ -129,6 +159,8 @@ get.conf=function(trios=NULL, PCscores=NULL, blocksize=2000, apply.qval=TRUE, FD
 #' @param fdr the false discovery rate
 #' @param lambda The value of the tuning parameter to estimate \eqn{pi_0}. Must be in \eqn{[0,1)}
 #' @return an n X 3 dataframe containing the correlations, qvalues, and significance (logical)
+
+
 
 adjust.q=function(p, fdr, lambda){
   #apply qvalue correction
@@ -143,11 +175,14 @@ adjust.q=function(p, fdr, lambda){
   return(cbind.data.frame(significant=sig, qvalue=qval))
 }
 
+
 #' A function to calculate the pearson correlation p-values
 #'
 #' @param r either (1) a single pearson correlation coefficient or (2) a vector of correlation coefficients
 #' @param n the sample size (if length(r)>1 then n must be a vector if sample sizes vary)
 #' @return an n X 3 dataframe containing the correlations and pvalues
+
+
 
 p.from.cor=function(r, n){
   #calculate t values from vector of correlations
@@ -157,11 +192,29 @@ p.from.cor=function(r, n){
   return(cbind.data.frame(pvalue=p,cor=r))
 }
 
+#' A function to calculate the pearson correlation p-values
+#'
+#' @param r either (1) a single pearson correlation coefficient or (2) a vector of correlation coefficients
+#' @param n the sample size (if length(r)>1 then n must be a vector if sample sizes vary)
+#' @return an n X 3 dataframe containing the correlations and pvalues
 
 
-
-
-
+p.from.reg=function(pc, genes){
+  #extract cis and trans gene idx
+  seq1=seq(1, dim(genes)[2], 2)
+  seq2=seq(2, dim(genes)[2], 2)
+  #bind seq into list
+  seq.list=as.list(rbind.data.frame(seq1, seq2))
+  #convert each pair of genes and the pc into a list of dataframes
+  dfs=lapply(seq.list, function(x,y,z){cbind.data.frame(PC=z, gene1=y[,x[1]], gene2=y[,x[2]])},
+             z = pc, y = genes)
+  #apply the regression of the pc on each pair of genes
+  fstats=sapply(dfs, function(x){summary(stats::lm(PC~., data=x))$fstatistic})
+  #calculate the pvalue of the overall f statistic from each regression
+  pstats=apply(fstats, 2, function(x){1-stats::pf(q = x[1], df1 = x[2], df2 = x[3])})
+  #return pvalues vector
+  return(pstats)
+}
 
 
 
