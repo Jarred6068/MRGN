@@ -74,13 +74,10 @@ get.conf=function(trios=NULL, PCscores=NULL, blocksize=2000, apply.qval=TRUE, FD
     triomat=trios
   }
 
-  #get indicies of each trio in triomat
-  trio.indices=cbind( start.col = seq(1,dim(triomat)[2],3),
-                      end.col = seq(3,dim(triomat)[2],3))
   #make colnames unique to avoid error in bigcor
   colnames(triomat) <- make.unique(colnames(triomat)) #duplicated colnames
   #get the sample sizes used in each pairwise correlation calculation
-  sample.sizes=apply(triomat,2, function(x) length(S4Vectors::na.omit(x)))
+  sample.sizes=apply(triomat,2, function(x) length(na.omit(x)))
   #calculate the correlations of each PC with the trios
   cormat=propagate::bigcor(triomat, PCscores, verbose = T, use="pairwise.complete.obs", size = blocksize)
 
@@ -130,6 +127,9 @@ get.conf=function(trios=NULL, PCscores=NULL, blocksize=2000, apply.qval=TRUE, FD
       #naming
       colnames(sig.mat)=colnames(q.mat)=colnames(r.mat)=colnames(p.mat)=colnames(p.adj.mat)=paste0("PC",1:dim(PCscores)[2])
       row.names(sig.mat)=row.names(q.mat)=row.names(r.mat)=row.names(p.mat)=row.names(p.adj.mat)=make.unique(colnames(triomat))
+      #get indicies of each trio in triomat
+      trio.indices=cbind( start.col = seq(1,dim(triomat)[2],3),
+                          end.col = seq(3,dim(triomat)[2],3))
       #final list of pcs for trios
       final.list.sig.asso.pcs=apply(trio.indices, 1,
                                     function(x,y){ list(unique(unlist(y[x[1]:x[2]]))) },
