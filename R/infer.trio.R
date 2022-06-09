@@ -6,10 +6,14 @@
 #' This function takes in a matrix representing a trio (with or without confounding variables) and performs the
 #' MRGN inference. it returns a vector containing the results of the coefficient and marginal tests
 #'
-#' @param trio A dataframe with at least 3 columns and the first column containing the genetic variant
-#' @param gamma the minor allele frequency threshold for which the permutation test should be used
-#' @param alpha the rejection threshold
-#' @param nperms the number of permuations to perform for trios with rare variants
+#' @param trio A dataframe with at least 3 columns. The first column should be the genetic variant, and the second
+#'             and third columns the molecular phenotypes. Data in columns 4+ are treated as confounding variables
+#' @param use.perm (logical) if TRUE the permutation test is used for trios with minor allele freq < gamma. If FALSE
+#'                 test is ignored for all trios (default = TRUE)
+#' @param gamma The minor allele frequency threshold for which the permutation test should be used such that permutation is
+#'              performed when minor allele freq < gamma (when use.perm = TRUE).
+#' @param alpha The rejection threshold for all wald tests (default = 0.01) which is approximately the bonferroni correction
+#' @param nperms The number of permutations to perform for trios with rare variants (default = 10,000)
 #' @param verbose (logical) if TRUE results of the regressions are printed
 #' @examples
 #' #inference on a single trio
@@ -34,7 +38,7 @@
 ####################################################################
 #a wrapper function for get.freq(), Reg(), and PermReg() to infer the trio
 #combines the functions from sections 1.1-1.2
-infer.trio=function(trio=NULL, gamma=0.05, alpha=0.01, nperms=10000, verbose=FALSE){
+infer.trio=function(trio=NULL, use.perm = TRUE, gamma=0.05, alpha=0.01, nperms=10000, verbose=FALSE){
 
   #preallocate indicator vectors
   xp=NULL
@@ -52,7 +56,7 @@ infer.trio=function(trio=NULL, gamma=0.05, alpha=0.01, nperms=10000, verbose=FAL
   minor=get.freq(V=trio[,1])
 
   #step 2.1
-  if(minor<gamma){
+  if(use.perm == TRUE & minor<gamma){
     #preform permuted regression (section 1.2) for rare variants
     pvals=PermReg(trio = trio,
                   t.obs21 = pt.out$tvals[2],

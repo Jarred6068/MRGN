@@ -181,7 +181,7 @@ get.conf=function(trios=NULL, PCscores=NULL, blocksize=2000, apply.qval=TRUE, FD
 adjust.q=function(p, fdr, lambda){
   #apply qvalue correction
   if(is.null(lambda)){
-    qval.str=qvalue::qvalue(p, fdr.level = fdr, lambda=seq(0.05, max(p), 0.05))
+    qval.str=qvalue::qvalue(p, fdr.level = fdr, lambda=seq(0.05, max(p, na.rm = T), 0.05))
   }else{
     qval.str=qvalue::qvalue(p, fdr.level = fdr, lambda=lambda)
   }

@@ -6,6 +6,7 @@
 \usage{
 infer.trio(
   trio = NULL,
+  use.perm = TRUE,
   gamma = 0.05,
   alpha = 0.01,
   nperms = 10000,
@@ -13,13 +14,18 @@ infer.trio(
 )
 }
 \arguments{
-\item{trio}{A dataframe with at least 3 columns and the first column containing the genetic variant}
+\item{trio}{A dataframe with at least 3 columns. The first column should be the genetic variant, and the second
+and third columns the molecular phenotypes. Data in columns 4+ are treated as confounding variables}
 
-\item{gamma}{the minor allele frequency threshold for which the permutation test should be used}
+\item{use.perm}{(logical) if TRUE the permutation test is used for trios with minor allele freq < gamma. If FALSE
+test is ignored for all trios (default = TRUE)}
 
-\item{alpha}{the rejection threshold}
+\item{gamma}{The minor allele frequency threshold for which the permutation test should be used such that permutation is
+performed when minor allele freq < gamma (when use.perm = TRUE).}
 
-\item{nperms}{the number of permuations to perform for trios with rare variants}
+\item{alpha}{The rejection threshold for all wald tests (default = 0.01) which is approximately the bonferroni correction}
+
+\item{nperms}{The number of permutations to perform for trios with rare variants (default = 10,000)}
 
 \item{verbose}{(logical) if TRUE results of the regressions are printed}
 }
