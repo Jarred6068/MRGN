@@ -567,7 +567,7 @@ simData.from.graph = function(model, theta, b0.1, b.snp, b.med, sd.1, conf.num.v
   #convert adjacency to igraph
   graph.obj = igraph::graph_from_adjacency_matrix(graph.adj)
   if(plot.graph == TRUE){
-    igraph::plot.igraph(graph.obj, layout = layout_nicely, edge.arrow.size = 0.2)
+    igraph::plot.igraph(graph.obj, layout = igraph::layout_nicely, edge.arrow.size = 0.2)
   }
   #get the topological ordering
   topo.order = colnames(graph.adj)[as.vector(igraph::topo_sort(graph.obj))]
