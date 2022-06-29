@@ -15,10 +15,11 @@ RoxygenNote: 7.1.2
 LazyData: true
 Imports: 
     prodlim,
+    igraph,
     psych,
     qvalue,
     mvtnorm,
     tmvtnorm,
     ff,
-    propagate,
-    igraph
+    propagate
+    
