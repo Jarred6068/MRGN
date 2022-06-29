@@ -17,6 +17,8 @@ Imports:
     prodlim,
     psych,
     qvalue,
+    mvtnorm,
     tmvtnorm,
     ff,
-    propagate
+    propagate,
+    igraph
