@@ -33,9 +33,11 @@ class.vec=function(vec=NULL){
     #handle M2 and M4 by differentiating based on
     #marginal tests
     zp=vec[5:6]
-    #if both marginals are insig or both sig we
+    #if both marginals are sig we
     #allocate to M4
-    if(sum(zp)==2 | sum(zp)==0){mt="M4"}
+    if(sum(zp)==2){mt="M4"}
+    #if both marginals are insig we allocate to other
+    if(sum(zp)==0){mt="Other"}
 
     #if only one of the marginals is sig we determine
     #which direction and allocate to M2.1 or M2.2
