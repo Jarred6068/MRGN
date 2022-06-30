@@ -45,6 +45,8 @@
 #combines the functions from sections 1.1-1.2
 infer.trio=function(trio=NULL, use.perm = TRUE, gamma=0.05, alpha=0.01, nperms=10000, verbose=FALSE){
 
+  #ensure trio is a dataframe for later functions:
+  trio = as.data.frame(trio)
   #preallocate indicator vectors
   xp=NULL
   rp=NULL
