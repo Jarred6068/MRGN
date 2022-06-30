@@ -234,6 +234,7 @@ simData=function (theta, model, b0.1, b.snp, b.med, sd.1, G=NULL, u=NULL){
 #' @param struct For use when when model == "custom". Either (1) a sub-adjacency matrix of dimension
 #' (number.of.V + number.of.T  X  number.of.V + number.of.T) definining the topology of the V and T nodes
 #' or (2) the string "random" denoting a random topology
+#' @param plot.graph (logical) if TRUE the graph is plotted. default = TRUE
 #' @return an adjacency matrix
 #' @export gen.graph.skel
 #' @examples
@@ -241,15 +242,17 @@ simData=function (theta, model, b0.1, b.snp, b.med, sd.1, G=NULL, u=NULL){
 #' adj = gen.graph.skel(model = "model0", conf.num.vec = c(1,1,1,1))
 
 #creates the graph skeleton for each model: contains u, k, w, and z variables in adj.
-gen.graph.skel = function(model, conf.num.vec, number.of.T, number.of.V, struct){
+gen.graph.skel = function(model, conf.num.vec, number.of.T, number.of.V, struct, plot.graph = TRUE){
 
   #preallocate names
   conf.node.names=NULL
-  letter.id = c("U","K","W","Z")
+  letter.id = c("K","U","W","Z")
   #create all confounder names
   if(sum(conf.num.vec)>0){
-    for(i in 1:length(conf.num.vec)){
-      conf.node.names = append(conf.node.names, paste0(letter.id[i], c(1:conf.num.vec[i])))
+    nz.letter.id = letter.id[which(conf.num.vec>0)]
+    conf.num.vec2 = conf.num.vec[which(conf.num.vec>0)]
+    for(i in 1:length(conf.num.vec2)){
+      conf.node.names = append(conf.node.names, paste0(nz.letter.id[i], c(1:conf.num.vec2[i])))
     }
   }
   #preallocate adjecency matrix:
@@ -278,107 +281,32 @@ gen.graph.skel = function(model, conf.num.vec, number.of.T, number.of.V, struct)
   #----------model-0-----------
   switch(model, model0 = {
     A[1,2] = 1
-    #confounders
-    for(i in 1:2){
-      for(j in 2:3){
-        A[which(grepl(letter.id[i],conf.node.names))+3, j] = 1
-      }
-    }
-    #intermediate
-    A[which(grepl("W",conf.node.names))+3, 3] = 1
-    A[2, which(grepl("W",conf.node.names))+3] = 1
 
-    #common child
-    for(k in 2:3){
-      A[k, which(grepl("Z",conf.node.names))+3] = 1
-    }
-
-    return(A)
     #----------model-1-----------
   }, model1 = {
 
     A[1,2] = 1
     A[2,3] = 1
-    #confounders
-    for(i in 1:2){
-      for(j in 2:3){
-        A[which(grepl(letter.id[i],conf.node.names))+3, j] = 1
-      }
-    }
-    #intermediate
-    A[which(grepl("W",conf.node.names))+3, 3] = 1
-    A[2, which(grepl("W",conf.node.names))+3] = 1
 
-    #common child
-    for(k in 2:3){
-      A[k, which(grepl("Z",conf.node.names))+3] = 1
-    }
-
-    return(A)
     #----------model-2-----------
   }, model2 = {
 
     A[1,2] = 1
     A[3,2] = 1
-    #confounders
-    for(i in 1:2){
-      for(j in 2:3){
-        A[which(grepl(letter.id[i],conf.node.names))+3, j] = 1
-      }
-    }
-    #intermediate
-    A[which(grepl("W",conf.node.names))+3, 2] = 1
-    A[3, which(grepl("W",conf.node.names))+3] = 1
 
-    #common child
-    for(k in 2:3){
-      A[k, which(grepl("Z",conf.node.names))+3] = 1
-    }
-
-    return(A)
     #----------model-3-----------
   }, model3 = {
 
     A[1,2] = 1
     A[1,3] = 1
-    #confounders
-    for(i in 1:2){
-      for(j in 2:3){
-        A[which(grepl(letter.id[i],conf.node.names))+3, j] = 1
-      }
-    }
-    #intermediate
-    A[which(grepl("W",conf.node.names))+3, 3] = 1
-    A[2, which(grepl("W",conf.node.names))+3] = 1
 
-    #common child
-    for(k in 2:3){
-      A[k, which(grepl("Z",conf.node.names))+3] = 1
-    }
-
-    return(A)
     #----------model-4-----------
   }, model4 = {
 
     A[1,2:3] = 1
     A[2,3] = 1
     A[3,2] = 1
-    #confounders
-    for(i in 1:2){
-      for(j in 2:3){
-        A[which(grepl(letter.id[i],conf.node.names))+3, j] = 1
-      }
-    }
-    #intermediate
-    A[which(grepl("W",conf.node.names))+3, 3] = 1
-    A[2, which(grepl("W",conf.node.names))+3] = 1
 
-    #common child
-    for(k in 2:3){
-      A[k, which(grepl("Z",conf.node.names))+3] = 1
-    }
-
-    return(A)
     #----------custom-model-----------
   }, custom = {
 
@@ -416,9 +344,45 @@ gen.graph.skel = function(model, conf.num.vec, number.of.T, number.of.V, struct)
     }
 
     diag(A) = 0
-    return(A)
+
+    igraph.obj = igraph::graph_from_adjacency_matrix(A)
+    if(plot.graph == TRUE){
+      igraph::plot.igraph(igraph.obj, layout = igraph::layout_nicely, edge.arrow.size = 0.2)
+    }
+
+    return(list(adjacency = A, igraph.obj = igraph.obj))
 
   }, stop("Model not included or missing"))
+
+  #handle confounders, intermediate, and common child vars for 5 basic topos
+  #confounders
+
+  for(i in 1:length(letter.id)){
+    if(conf.num.vec[i]>0){
+      if(letter.id[i] == "K" | letter.id[i] == "U"){
+        for(j in 2:3){
+          A[which(grepl(letter.id[i],conf.node.names))+3, j] = 1
+        }
+      }else if(letter.id[i] == "W"){
+        #intermediate
+        A[which(grepl("W",conf.node.names))+3, 3] = 1
+        A[2, which(grepl("W",conf.node.names))+3] = 1
+      }else if(letter.id[i] == "Z"){
+        #common child
+        for(k in 2:3){
+          A[k, which(grepl("Z",conf.node.names))+3] = 1
+        }
+      }
+    }
+  }
+
+
+  igraph.obj = igraph::graph_from_adjacency_matrix(A)
+  if(plot.graph == TRUE){
+    igraph::plot.igraph(igraph.obj, layout = igraph::layout_nicely, edge.arrow.size = 0.2)
+  }
+
+  return(list(adjacency = A, igraph.obj = igraph.obj))
 
 }
 
@@ -521,6 +485,7 @@ gen.conf.coefs=function(parental.list = NULL, b.snp=NULL, b.med=NULL, num.z=NULL
 #' @examples
 #' # simulate 1000 samples from a model 1 graph with one of each confounder and
 #' # plot the graph.
+#' \dontrun{
 #' X=simData.from.graph(theta=0.2,
 #'                      model="model1",
 #'                      b0.1=0,
@@ -533,49 +498,49 @@ gen.conf.coefs=function(parental.list = NULL, b.snp=NULL, b.med=NULL, num.z=NULL
 #'                      sample.size = 1000,
 #'                      conf.coef.ranges=list(U=c(0.15,0.5), K=c(0.01, 0.1),
 #'                                            W=c(0.15,0.5), Z=c(1, 1.5)))
+#' }
+
 
 simData.from.graph = function(model, theta, b0.1, b.snp, b.med, sd.1, conf.num.vec, number.of.T, number.of.V,
                               struct, simulate.confs = TRUE, conf.mat, sample.size, plot.graph = TRUE,
                               conf.coef.ranges=list(U=c(0.15,0.5), K=c(0.01, 0.1), W=c(0.15,0.5), Z=c(1, 1.5))){
 
-  #for use of real confounders or setting sample size to simulate all confounders
-  if(simulate.confs==TRUE){
-    if(missing(sample.size)){stop("missing sample.size: must supply one of G or sample.size")}
-    if(sum(conf.num.vec[1:2])==0){stop("confounders = 0: Must specify the number of U and K nodes")}
-    N = sample.size
-    conf.mat = mvtnorm::rmvnorm(N, mean = rnorm(sum(conf.num.vec[1:2])),
-                                sigma = diag(sum(conf.num.vec[1:2])))
-    if(conf.num.vec[1]==0){
-      colnames(conf.mat) = c(paste0("K", 1:conf.num.vec[2]))
-    }else if(conf.num.vec[2]==0){
-      colnames(conf.mat) = c(paste0("U", 1:conf.num.vec[1]))
-    }else{
-      colnames(conf.mat) = c(paste0("U", 1:conf.num.vec[1]), paste0("K", 1:conf.num.vec[2]))
-    }
-  }else{
-    N = dim(conf.mat)[1]
-  }
+  # #for use of real confounders or setting sample size to simulate all confounders
+  # if(simulate.confs==TRUE){
+  #   if(missing(sample.size)){stop("missing sample.size: must supply one of G or sample.size")}
+  #   if(sum(conf.num.vec[1:2])==0){stop("confounders = 0: Must specify the number of U and K nodes")}
+  #   N = sample.size
+  #   conf.mat = mvtnorm::rmvnorm(N, mean = rnorm(sum(conf.num.vec[1:2])),
+  #                               sigma = diag(sum(conf.num.vec[1:2])))
+  #   if(conf.num.vec[1]==0){
+  #     colnames(conf.mat) = c(paste0("K", 1:conf.num.vec[2]))
+  #   }else if(conf.num.vec[2]==0){
+  #     colnames(conf.mat) = c(paste0("U", 1:conf.num.vec[1]))
+  #   }else{
+  #     colnames(conf.mat) = c(paste0("U", 1:conf.num.vec[1]), paste0("K", 1:conf.num.vec[2]))
+  #   }
+  # }else{
+  #   N = dim(conf.mat)[1]
+  # }
 
   #generate the graph
-  graph.adj = gen.graph.skel(model = model, conf.num.vec = conf.num.vec, number.of.T = number.of.T,
-                             number.of.V = number.of.V, struct = struct)
+  graph.skel = gen.graph.skel(model = model, conf.num.vec = conf.num.vec, number.of.T = number.of.T,
+                             number.of.V = number.of.V, struct = struct, plot.graph = plot.graph)
   #preallocate data matrix
-  X = as.data.frame(matrix(0, nrow = N, ncol = dim(graph.adj)[2]))
-  colnames(X) = colnames(graph.adj)
+  X = as.data.frame(matrix(0, nrow = N, ncol = dim(graph.skel$adjacency)[2]))
+  colnames(X) = colnames(graph.skel$adjacency)
   #add in the confounding variables
-  X[,match(colnames(conf.mat), colnames(graph.adj))] = conf.mat
+  X[,match(colnames(conf.mat), colnames(graph.skel$adjacency))] = conf.mat
   #convert adjacency to igraph
-  graph.obj = igraph::graph_from_adjacency_matrix(graph.adj)
-  if(plot.graph == TRUE){
-    igraph::plot.igraph(graph.obj, layout = igraph::layout_nicely, edge.arrow.size = 0.2)
-  }
+
   #get the topological ordering
-  topo.order = colnames(graph.adj)[as.vector(igraph::topo_sort(graph.obj))]
+  topo.order = colnames(graph.skel$adjacency)[as.vector(igraph::topo_sort(graph.skel$igraph.obj))]
 
   for(i in 1:length(topo.order)){
 
     #generate V nodes in topo order
-    location = match(topo.order[i], colnames(graph.adj))
+    location = match(topo.order[i], colnames(graph.skel$adjacency))
+    parent.list = find.parents(Adjacency = graph.skel$adjacency, location = location)
 
     if(grepl("V", topo.order[i])){
       X[,location] = c(sample(c(0, 1, 2), size = N, replace = TRUE,
@@ -583,13 +548,13 @@ simData.from.graph = function(model, theta, b0.1, b.snp, b.med, sd.1, conf.num.v
 
       #generate T nodes in topo order
     }else if(grepl("T", topo.order[i])){
-
-      parent.list = find.parents(Adjacency = graph.adj, location = location)
-
       #catch nodes with no parents of any kind
       if(sum(unlist(lapply(parent.list, is.na)))==5){
-        #generate node
-        X[, location] = rnorm(n = N, mean = b0.1, sd = sd.1)
+        if(any(c("K", "U") == topo.order[i]) & missing(conf.mat)){
+          #generate node
+          X[, location] = rnorm(n = N, mean = round(runif(1,0,5)), sd = 1)
+        }
+
       }else{
         #get parent idx
         parent.idx = which(unlist(lapply(parent.list, function(x) !is.na(x[1]))))
@@ -609,14 +574,12 @@ simData.from.graph = function(model, theta, b0.1, b.snp, b.med, sd.1, conf.num.v
       #create intermediate variables
     }else if(grepl("W", topo.order[i])){
 
-      parent.list = find.parents(Adjacency = graph.adj, location = location)
       coefs.list = gen.conf.coefs(parental.list = parent.list, b.snp = b.snp, b.med = b.med,
                                   num.z = length(parent.list$T), coef.range.list=conf.coef.ranges)
       X[,location] = rnorm(n = N, mean = b0.1 + as.matrix(X[,parent.list$T])%*%coefs.list$W, sd = sd.1)
 
       #create child variables
     }else if(grepl("Z", topo.order[i])){
-      parent.list = find.parents(Adjacency = graph.adj, location = location)
       coefs.list = gen.conf.coefs(parental.list = parent.list, b.snp = b.snp, b.med = b.med,
                                   num.z = length(parent.list$T), coef.range.list=conf.coef.ranges)
       X[,location] = rnorm(n = N, mean = b0.1 + as.matrix(X[,parent.list$T])%*%coefs.list$Z, sd = sd.1)
