@@ -30,7 +30,12 @@ performed when minor allele freq < gamma (when use.perm = TRUE).}
 \item{verbose}{(logical) if TRUE results of the regressions are printed}
 }
 \value{
-a vector of length = 13 containing the topology and regression results for the input trio
+a list of length = 2
+\describe{
+\item{Stats}{a vector of length = 13 containing the indicator values and pvalues from the marginal and conditional
+tests}
+\item{Inferred.Model}{a string indicating the inferred model type as returned by \eqn{class.vec()}}
+}
 }
 \description{
 This function takes in a matrix representing a trio (with or without confounding variables) and performs the
@@ -39,16 +44,15 @@ MRGN inference. it returns a vector containing the results of the coefficient an
 \examples{
 #inference on a single trio
 result=infer.trio(M1trio)
-
-#get the predicted topology
-which.model=class.vec(result)
-print(which.model)
+print(result)
 
 \dontrun{
 #fast example on 10 trios from the built in dataset WBtrios
-result2 = sapply(WBtrios[1:10], infer.trio)
-#get the predicted topology
-models = apply(result2, 2, class.vec)
+#return just the summary stats
+stats = sapply(WBtrios[1:10], function(x) infer.trio(x)$Stats)
+print(stats)
+#return just the inferred model topology
+models = sapply(WBtrios[1:10], function(x) infer.trio(x)$Inferred.Model)
 print(models)
 }
 }

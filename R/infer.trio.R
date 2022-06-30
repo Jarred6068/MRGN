@@ -18,19 +18,24 @@
 #' @examples
 #' #inference on a single trio
 #' result=infer.trio(M1trio)
-#'
-#' #get the predicted topology
-#' which.model=class.vec(result)
-#' print(which.model)
+#' print(result)
 #'
 #' \dontrun{
 #' #fast example on 10 trios from the built in dataset WBtrios
-#' result2 = sapply(WBtrios[1:10], infer.trio)
-#' #get the predicted topology
-#' models = apply(result2, 2, class.vec)
+#' #return just the summary stats
+#' stats = sapply(WBtrios[1:10], function(x) infer.trio(x)$Stats)
+#' print(stats)
+#' #return just the inferred model topology
+#' models = sapply(WBtrios[1:10], function(x) infer.trio(x)$Inferred.Model)
 #' print(models)
 #' }
-#' @return a vector of length = 13 containing the topology and regression results for the input trio
+#' @return a list of length = 2
+#'   \describe{
+#'   \item{Stats}{a vector of length = 13 containing the indicator values and pvalues from the marginal and conditional
+#'   tests}
+#'   \item{Inferred.Model}{a string indicating the inferred model type as returned by \eqn{class.vec()}}
+#'   }
+#'
 #' @export infer.trio
 
 
@@ -87,5 +92,5 @@ infer.trio=function(trio=NULL, use.perm = TRUE, gamma=0.05, alpha=0.01, nperms=1
   names(all.stats)=c("b11","b21", "b12","b22", "V1:T2", "V1:T1", "pb11",
                      "pb21", "pb12","pb22","pV1:T2","pV1:T1", "Minor.freq")
 
-  return(all.stats)
+  return(list(Stats = all.stats, Inferred.Model = MRGN::class.vec(all.stats)))
 }
