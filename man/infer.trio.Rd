@@ -2,7 +2,7 @@
 % Please edit documentation in R/infer.trio.R
 \name{infer.trio}
 \alias{infer.trio}
-\title{A wrapper function for get.freq(), Reg(), and PermReg() to infer an input trio}
+\title{A function to infer the causal network of a trio}
 \usage{
 infer.trio(
   trio = NULL,
@@ -30,16 +30,29 @@ performed when minor allele freq < gamma (when use.perm = TRUE).}
 \item{verbose}{(logical) if TRUE results of the regressions are printed}
 }
 \value{
-a list of length = 2
+a dataframe of dimension 1 x 14 with the following columns:
 \describe{
-\item{Stats}{a vector of length = 13 containing the indicator values and pvalues from the marginal and conditional
-tests}
+\item{b11}{the indicator \link{0,1} value for the conditional test T1 ~ V | T2,U}
+\item{b21}{the indicator \link{0,1} value for the conditional test T1 ~ T2 | V,U}
+\item{b12}{the indicator \link{0,1} value for the conditional test T2 ~ V | T1,U}
+\item{b22}{the indicator \link{0,1} value for the conditional test T2 ~ T1 | V,U}
+\item{V1:T2}{the indicator \link{0,1} value for the marginal test between V1 and T2}
+\item{V1:T1}{the indicator \link{0,1} value for the marginal test between V1 and T1}
+\item{pb11}{the p-value for the conditional test T1 ~ V | T2,U}
+\item{pb21}{the p-value for the conditional test T1 ~ T2 | V,U}
+\item{pb12}{the p-value for the conditional test T2 ~ V | T1,U}
+\item{pb22}{the p-value for the conditional test T2 ~ T1 | V,U}
+\item{pV1:T2}{the p-value for the marginal test between V1 and T2}
+\item{pV1:T1}{the p-value for the marginal test between V1 and T1}
+\item{Minor.freq}{the calculated frequency of the minor allele of the genetic variant}
 \item{Inferred.Model}{a string indicating the inferred model type as returned by \eqn{class.vec()}}
 }
 }
 \description{
 This function takes in a matrix representing a trio (with or without confounding variables) and performs the
-MRGN inference. it returns a vector containing the results of the coefficient and marginal tests
+MRGN inference. It wraps the functions get.freq(), Reg(), PermReg(), and class.vec() to infer an input trio.
+It returns a one dimensional dataframe containing the results of the coefficient and marginal tests and the
+inferred model structure
 }
 \examples{
 #inference on a single trio
