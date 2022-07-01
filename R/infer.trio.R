@@ -1,10 +1,12 @@
 
 
 
-#' A wrapper function for get.freq(), Reg(), and PermReg() to infer an input trio
+#' A function to infer the causal network of a trio
 #'
 #' This function takes in a matrix representing a trio (with or without confounding variables) and performs the
-#' MRGN inference. it returns a vector containing the results of the coefficient and marginal tests
+#' MRGN inference. It wraps the functions get.freq(), Reg(), PermReg(), and class.vec() to infer an input trio.
+#' It returns a one dimensional dataframe containing the results of the coefficient and marginal tests and the
+#' inferred model structure
 #'
 #' @param trio A dataframe with at least 3 columns. The first column should be the genetic variant, and the second
 #'             and third columns the molecular phenotypes. Data in columns 4+ are treated as confounding variables
@@ -29,10 +31,21 @@
 #' models = sapply(WBtrios[1:10], function(x) infer.trio(x)$Inferred.Model)
 #' print(models)
 #' }
-#' @return a list of length = 2
+#' @return a dataframe of dimension 1 x 14 with the following columns:
 #'   \describe{
-#'   \item{Stats}{a vector of length = 13 containing the indicator values and pvalues from the marginal and conditional
-#'   tests}
+#'   \item{b11}{the indicator [0,1] value for the conditional test T1 ~ V | T2,U}
+#'   \item{b21}{the indicator [0,1] value for the conditional test T1 ~ T2 | V,U}
+#'   \item{b12}{the indicator [0,1] value for the conditional test T2 ~ V | T1,U}
+#'   \item{b22}{the indicator [0,1] value for the conditional test T2 ~ T1 | V,U}
+#'   \item{V1:T2}{the indicator [0,1] value for the marginal test between V1 and T2}
+#'   \item{V1:T1}{the indicator [0,1] value for the marginal test between V1 and T1}
+#'   \item{pb11}{the p-value for the conditional test T1 ~ V | T2,U}
+#'   \item{pb21}{the p-value for the conditional test T1 ~ T2 | V,U}
+#'   \item{pb12}{the p-value for the conditional test T2 ~ V | T1,U}
+#'   \item{pb22}{the p-value for the conditional test T2 ~ T1 | V,U}
+#'   \item{pV1:T2}{the p-value for the marginal test between V1 and T2}
+#'   \item{pV1:T1}{the p-value for the marginal test between V1 and T1}
+#'   \item{Minor.freq}{the calculated frequency of the minor allele of the genetic variant}
 #'   \item{Inferred.Model}{a string indicating the inferred model type as returned by \eqn{class.vec()}}
 #'   }
 #'
@@ -93,6 +106,8 @@ infer.trio=function(trio=NULL, use.perm = TRUE, gamma=0.05, alpha=0.01, nperms=1
 
   names(all.stats)=c("b11","b21", "b12","b22", "V1:T2", "V1:T1", "pb11",
                      "pb21", "pb12","pb22","pV1:T2","pV1:T1", "Minor.freq")
+  all.stats = as.data.frame(t(all.stats))
+  all.stats$Inferred.Model = MRGN::class.vec(all.stats)
 
-  return(list(Stats = all.stats, Inferred.Model = MRGN::class.vec(all.stats)))
+  return(all.stats)
 }
