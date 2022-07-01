@@ -219,6 +219,27 @@ simData=function (theta, model, b0.1, b.snp, b.med, sd.1, G=NULL, u=NULL){
   }, stop("Model not included or missing"))
 }
 
+
+#################################################
+
+#' A function to generate effects for effects in the graph
+#'
+#' @param n.effects the number of effects to simulate
+#' @param coef.range.list a list of length 4 containing the mininum and maximum effect size for U,K,W, and Z variables
+#' (in that order)
+#' @param neg.freq the frequency of negative effects for a given variable
+#' @return a vector of simulated effects
+
+gen.conf.coefs=function(n.effects, coef.range.list, neg.freq){
+
+  weights = runif(n.effects, conf.coef.ranges[1], conf.coef.ranges[2])
+  cointoss = rbinom(n.effects, 1, neg.freq)
+  weights[which(cointoss==1)]=-1*weights[which(cointoss==1)]
+
+  return(weights)
+
+}
+
 #################################################
 
 #' A function to simulate a graph with confounder, intermediate, and common child variables
@@ -238,11 +259,15 @@ simData=function (theta, model, b0.1, b.snp, b.med, sd.1, G=NULL, u=NULL){
 #' @return an adjacency matrix
 #' @export gen.graph.skel
 #' @examples
-#' # generate a model 0 graph with one of each type of confounding variables
-#' adj = gen.graph.skel(model = "model0", conf.num.vec = c(1,1,1,1))
+#' # generate a model 1 graph with one of each type of confounding variables
+#' adj = gen.graph.skel(model = "model1",
+#'                      b.snp=0.8,
+#'                      b.med=0.6,
+#'                      conf.num.vec = c(1,1,1,1))
 
 #creates the graph skeleton for each model: contains u, k, w, and z variables in adj.
-gen.graph.skel = function(model, conf.num.vec, number.of.T, number.of.V, struct, plot.graph = TRUE){
+gen.graph.skel = function(model, b.snp, b.med, conf.num.vec, number.of.T, number.of.V, struct, plot.graph = TRUE,
+                          conf.coef.ranges=list(K=c(0.01, 0.1), U=c(0.15,0.5), W=c(0.15,0.5), Z=c(1, 1.5))){
 
   #preallocate names
   conf.node.names=NULL
@@ -266,91 +291,92 @@ gen.graph.skel = function(model, conf.num.vec, number.of.T, number.of.V, struct,
       stop("Missing arg: \"struct\" must enter a desired structure for V and T nodes when model = \"custom\" " )
     }
     #for custom graphs of chosen size
-    A = matrix(0, nrow = sum(conf.num.vec)+number.of.T+number.of.V,
+    B = matrix(0, nrow = sum(conf.num.vec)+number.of.T+number.of.V,
                ncol = sum(conf.num.vec)+number.of.T+number.of.V)
 
-    row.names(A) = colnames(A) = c(paste0("V", c(1:number.of.V)),
+    row.names(B) = colnames(B) = c(paste0("V", c(1:number.of.V)),
                                    paste0("T", c(1:number.of.T)),
                                    conf.node.names)
   }else{
     #for the other M0-M4 models
-    A = matrix(0, nrow = sum(conf.num.vec)+3, ncol = sum(conf.num.vec)+3)
-    row.names(A) = colnames(A) = c("V1","T1","T2", conf.node.names)
+    B = matrix(0, nrow = sum(conf.num.vec)+3, ncol = sum(conf.num.vec)+3)
+    row.names(B) = colnames(B) = c("V1","T1","T2", conf.node.names)
   }
 
   #----------model-0-----------
   switch(model, model0 = {
-    A[1,2] = 1
+    B[1,2] = 1*b.snp
 
     #----------model-1-----------
   }, model1 = {
 
-    A[1,2] = 1
-    A[2,3] = 1
+    B[1,2] = 1*b.snp
+    B[2,3] = 1*b.med
 
     #----------model-2-----------
   }, model2 = {
 
-    A[1,2] = 1
-    A[3,2] = 1
+    B[1,2] = 1*b.snp
+    B[3,2] = 1*b.med
 
     #----------model-3-----------
   }, model3 = {
 
-    A[1,2] = 1
-    A[1,3] = 1
+    B[1,2:3] = 1*b.snp
 
     #----------model-4-----------
   }, model4 = {
 
-    A[1,2:3] = 1
-    A[2,3] = 1
-    A[3,2] = 1
+    B[1,2:3] = 1*b.snp
+    B[2,3] = 1*b.med
+    B[3,2] = 1*b.med
 
     #----------custom-model-----------
   }, custom = {
 
     if(struct == "random"){
       #random topology for V and T
-      A.sub = as.matrix(igraph::get.adjacency(igraph::random.graph.game(number.of.V+number.of.T, p = 0.5, directed = T)))
+      B.sub = as.matrix(igraph::get.adjacency(igraph::random.graph.game(number.of.V+number.of.T, p = 0.5, directed = T)))
       #remove T --> V
-      A.sub[,1:number.of.V] = 0
+      B.sub[,1:number.of.V] = 0
       #remove V --> V
-      A.sub[1:number.of.V, 1:number.of.V] = 0
+      B.sub[1:number.of.V, 1:number.of.V] = 0
 
       #insert topology
-      A[1:(number.of.V+number.of.T), 1:(number.of.V+number.of.T)] = A.sub
+      B[1:(number.of.V+number.of.T), 1:(number.of.V+number.of.T)] = B.sub
 
       #custom structure connectivity for V and T
     }else{
-      A[1:(number.of.V+number.of.T), 1:(number.of.V+number.of.T)] = struct
+      B[1:(number.of.V+number.of.T), 1:(number.of.V+number.of.T)] = struct
     }
 
     #confounders
     for(i in 1:2){
       for(j in ((1:number.of.T)+number.of.V)){
-        A[which(grepl(letter.id[i],conf.node.names))+number.of.T+number.of.V, j] = 1
+        B[which(grepl(letter.id[i],conf.node.names))+number.of.T+number.of.V, j] = 1
       }
     }
     #intermediate
-    A[which(grepl("W",conf.node.names))+number.of.T+number.of.V,
+    B[which(grepl("W",conf.node.names))+number.of.T+number.of.V,
       sample(c(1:number.of.T)+number.of.V, round(runif(1,1, number.of.T)), replace = F)] = 1
-    A[sample(c(1:number.of.T)+number.of.V, round(runif(1,1, number.of.T)), replace = F),
+    B[sample(c(1:number.of.T)+number.of.V, round(runif(1,1, number.of.T)), replace = F),
       which(grepl("W",conf.node.names))+number.of.T+number.of.V] = 1
 
     #common child
     for(k in ((1:number.of.T)+number.of.V)){
-      A[k, which(grepl("Z",conf.node.names))+number.of.T+number.of.V] = 1
+      B[k, which(grepl("Z",conf.node.names))+number.of.T+number.of.V] = 1
     }
 
-    diag(A) = 0
+    diag(B) = 0
 
+    A = B
+    A[A!=0] = 1
     igraph.obj = igraph::graph_from_adjacency_matrix(A)
     if(plot.graph == TRUE){
       igraph::plot.igraph(igraph.obj, layout = igraph::layout_nicely, edge.arrow.size = 0.2)
     }
 
-    return(list(adjacency = A, igraph.obj = igraph.obj))
+    return(list(adjacency = A, effects.adj = B, igraph.obj = igraph.obj))
 
   }, stop("Model not included or missing"))
 
@@ -361,28 +387,37 @@ gen.graph.skel = function(model, conf.num.vec, number.of.T, number.of.V, struct,
     if(conf.num.vec[i]>0){
       if(letter.id[i] == "K" | letter.id[i] == "U"){
         for(j in 2:3){
-          A[which(grepl(letter.id[i],conf.node.names))+3, j] = 1
+          weights = gen.conf.coefs(n.effects = conf.num.vec[j-1], coef.range.list = conf.coef.ranges[[j-1]],
+                                   neg.freq = neg.freq)
+          B[which(grepl(letter.id[i],conf.node.names))+3, j] = 1*weights
         }
       }else if(letter.id[i] == "W"){
         #intermediate
-        A[which(grepl("W",conf.node.names))+3, 3] = 1
-        A[2, which(grepl("W",conf.node.names))+3] = 1
+        weights1 = gen.conf.coefs(n.effects = conf.num.vec[3], coef.range.list = conf.coef.ranges[[3]],
+                                 neg.freq = neg.freq)
+        weights2 = gen.conf.coefs(n.effects = conf.num.vec[3], coef.range.list = conf.coef.ranges[[3]],
+                                 neg.freq = neg.freq)
+        B[which(grepl("W",conf.node.names))+3, 3] = 1*weights1
+        B[2, which(grepl("W",conf.node.names))+3] = 1*weights2
       }else if(letter.id[i] == "Z"){
         #common child
         for(k in 2:3){
-          A[k, which(grepl("Z",conf.node.names))+3] = 1
+          weights = gen.conf.coefs(n.effects = conf.num.vec[4], coef.range.list = conf.coef.ranges[[4]],
+                                   neg.freq = neg.freq)
+          B[k, which(grepl("Z",conf.node.names))+3] = 1*weights
         }
       }
     }
   }
 
-
+  A = B
+  A[A!=0] = 1
   igraph.obj = igraph::graph_from_adjacency_matrix(A)
   if(plot.graph == TRUE){
     igraph::plot.igraph(igraph.obj, layout = igraph::layout_nicely, edge.arrow.size = 0.2)
   }
 
-  return(list(adjacency = A, igraph.obj = igraph.obj))
+  return(list(adjacency = A, effects.adj = B, igraph.obj = igraph.obj))
 
 }
 
@@ -407,48 +442,6 @@ find.parents = function(Adjacency, location){
   names(parent.list)=c("V","T","K","U","W","Z")
 
   return(parent.list)
-}
-
-
-#################################################
-
-#' A function to generate effects for effects in the graph
-#'
-#' @param parental.list a list of the parents of the given node
-#' @param b.snp the desired effect for all edges with the genetic variant
-#' @param b.med the desired effect for the mediation edge
-#' @param num.z the number of child variables
-#' @param coef.range.list a list of length 4 containing the mininum and maximum effect size for U,K,W, and Z variables
-#' (in that order)
-#' @param neg.freq the frequency of negative effects for a given variable
-#' @return a list of length 6 containing the simulated effects for each type of variable
-
-gen.conf.coefs=function(parental.list = NULL, b.snp=NULL, b.med=NULL, coef.range.list=NULL, neg.freq=0.5){
-
-  #simulation of effects of variables
-  #preallocate list of effects
-  sim.effects = vector("list", length = 6)
-  #name elements according to var type
-  names(sim.effects) = c("V","T","K","U","W","Z")
-  #pass the desired snp and mediation effects
-  sim.effects[[1]] = b.snp
-  sim.effects[[2]] = b.med
-  #simulate effects of U,K,W, and Z vars from ranges in coef.range.list
-  for(i in 3:6){
-    if(i == 6){
-      number.of.confs = length(unlist(parental.list[which(!is.na(parental.list))]))
-    }else{
-      number.of.confs = length(parental.list[[i]])
-    }
-    ct1 = rbinom(number.of.confs, 1, neg.freq)
-    w1 = runif(number.of.confs, min = coef.range.list[[i-2]][1], max = coef.range.list[[i-2]][2])
-    w1[which(ct1==1)]=-1*w1[which(ct1==1)]
-    sim.effects[[i]]=w1
-  }
-  #}
-
-  return(sim.effects)
-
 }
 
 
