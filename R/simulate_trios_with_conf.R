@@ -436,7 +436,7 @@ gen.conf.coefs=function(parental.list = NULL, b.snp=NULL, b.med=NULL, coef.range
   #simulate effects of U,K,W, and Z vars from ranges in coef.range.list
   for(i in 3:6){
     if(i == 6){
-      number.of.confs = length(parental.list[which(!is.na(parental.list))])
+      number.of.confs = length(unlist(parental.list[which(!is.na(parental.list))]))
     }else{
       number.of.confs = length(parental.list[[i]])
     }
@@ -462,11 +462,12 @@ gen.conf.coefs=function(parental.list = NULL, b.snp=NULL, b.med=NULL, coef.range
 #' @param model a string specifying one of "model0","model1", "model2", "model3","model4", or "custom"
 #' @param theta the frequency of the minor allele of the genetic variant
 #' @param b0.1 the intercept
-#' @param b.snp the effect of the genetic variant(s)
-#' @param b.med the effect between the molecular phenotypes
+#' @param b.snp a numeric or vector giving the effect(s) of the genetic variant(s)
+#' @param b.med a numeric or vector giving the effect(s) between the molecular phenotypes(s)
 #' @param sd.1 the residual standard deviation (noise)
-#' @param conf.num.vec a numeric vector of length 4 containing the number of confounder, known confounder, intermediate,
-#' and common child variables (in that order). To exclude a variable type, input a zero at the given position.
+#' @param conf.num.vec a numeric vector of length 4 containing the number of known confounders,
+#' unknown confounder, intermediate, and common child variables (in that order). To exclude a variable type,
+#' input a zero at the given position.
 #' @param number.of.T a numeric indicating the number of T variables desired for model == "custom" only
 #' @param number.of.V a numeric indicating the number of V variables desired for model == "custom" only
 #' @param struct For use when when model == "custom". Either (1) a sub-adjacency matrix of dimension
@@ -549,27 +550,21 @@ simData.from.graph = function(model, theta, b0.1, b.snp, b.med, sd.1, conf.num.v
           X[, location] = rnorm(n = N, mean = b0.1, sd = sd.1)
         }
       }else{
-        #since T nodes are more complex we have to handle them first::
-        if(grepl("T", topo.order[i])){
-          #get parent idx
-          parent.idx = which(unlist(lapply(parent.list, function(x) !is.na(x[1]))))
-          #generate confounder effects
-          coefs.list = gen.conf.coefs(parental.list = parent.list, b.snp = b.snp, b.med = b.med,
-                                      coef.range.list=conf.coef.ranges)
-          #find which effects to use accord to parental list
-          which.coefs = match(names(parent.idx), names(coefs.list))
-          #generate node
-          X[, location] = rnorm(n = N, mean = b0.1 +
-                                  as.matrix(X[, unlist(parent.list[parent.idx])])%*%unlist(coefs.list[which.coefs]),
-                                sd = sd.1)
-          #Now deal with W and Z nodes
+        #get parent idx
+        parent.idx = which(unlist(lapply(parent.list, function(x) !is.na(x[1]))))
+        #generate confounder effects
+        coefs.list = gen.conf.coefs(parental.list = parent.list, b.snp = b.snp, b.med = b.med,
+                                    coef.range.list=conf.coef.ranges)
+        #find which effects to use accord to parental list
+        if(any(sapply(c("W", "Z"),grepl, x=topo.order[i]))){
+          which.coefs = match(substring(topo.order[i],1,1), names(coefs.list))
         }else{
-          coefs.list = gen.conf.coefs(parental.list = parent.list, b.snp = b.snp, b.med = b.med,
-                                      coef.range.list=conf.coef.ranges)
-          which.coefs = grepl(topo.order[i], names(coefs.list))
-          X[,location] = rnorm(n = N, mean = b0.1 + as.matrix(X[,parent.list$T])%*%coefs.list[[which.coefs]],
-                               sd = sd.1)
+          which.coefs = match(names(parent.idx), names(coefs.list))
         }
+        #generate node
+        X[, location] = rnorm(n = N, mean = b0.1 +
+                                as.matrix(X[, unlist(parent.list[parent.idx])])%*%unlist(coefs.list[which.coefs]),
+                              sd = sd.1)
       }
     }
   }
