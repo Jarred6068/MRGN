@@ -8,7 +8,6 @@ gen.conf.coefs(
   parental.list = NULL,
   b.snp = NULL,
   b.med = NULL,
-  num.z = NULL,
   coef.range.list = NULL,
   neg.freq = 0.5
 )
@@ -20,12 +19,12 @@ gen.conf.coefs(
 
 \item{b.med}{the desired effect for the mediation edge}
 
-\item{num.z}{the number of child variables}
-
 \item{coef.range.list}{a list of length 4 containing the mininum and maximum effect size for U,K,W, and Z variables
 (in that order)}
 
 \item{neg.freq}{the frequency of negative effects for a given variable}
+
+\item{num.z}{the number of child variables}
 }
 \value{
 a list of length 6 containing the simulated effects for each type of variable

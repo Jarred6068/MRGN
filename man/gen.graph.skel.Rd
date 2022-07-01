@@ -4,7 +4,14 @@
 \alias{gen.graph.skel}
 \title{A function to simulate a graph with confounder, intermediate, and common child variables}
 \usage{
-gen.graph.skel(model, conf.num.vec, number.of.T, number.of.V, struct)
+gen.graph.skel(
+  model,
+  conf.num.vec,
+  number.of.T,
+  number.of.V,
+  struct,
+  plot.graph = TRUE
+)
 }
 \arguments{
 \item{model}{a string specifying one of "model0","model1", "model2", "model3","model4", or "custom"}
@@ -19,6 +26,8 @@ and common child variables (in that order). To exclude a variable type input a z
 \item{struct}{For use when when model == "custom". Either (1) a sub-adjacency matrix of dimension
 (number.of.V + number.of.T  X  number.of.V + number.of.T) definining the topology of the V and T nodes
 or (2) the string "random" denoting a random topology}
+
+\item{plot.graph}{(logical) if TRUE the graph is plotted. default = TRUE}
 }
 \value{
 an adjacency matrix

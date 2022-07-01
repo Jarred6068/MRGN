@@ -12,7 +12,7 @@ find.parents(Adjacency, location)
 \item{location}{the column index of the node of interest in the adjacency matrix}
 }
 \value{
-an adjacency matrix
+a list of length 6 representing the 6 nodes types, V,T,K,U,W,Z
 }
 \description{
 This function uses the adjacency matrix of a graph to identify the parents of a desired node in the graph

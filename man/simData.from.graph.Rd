@@ -19,7 +19,7 @@ simData.from.graph(
   conf.mat,
   sample.size,
   plot.graph = TRUE,
-  conf.coef.ranges = list(U = c(0.15, 0.5), K = c(0.01, 0.1), W = c(0.15, 0.5), Z =
+  conf.coef.ranges = list(K = c(0.01, 0.1), U = c(0.15, 0.5), W = c(0.15, 0.5), Z =
     c(1, 1.5))
 )
 }
@@ -30,14 +30,15 @@ simData.from.graph(
 
 \item{b0.1}{the intercept}
 
-\item{b.snp}{the effect of the genetic variant(s)}
+\item{b.snp}{a numeric or vector giving the effect(s) of the genetic variant(s)}
 
-\item{b.med}{the effect between the molecular phenotypes}
+\item{b.med}{a numeric or vector giving the effect(s) between the molecular phenotypes(s)}
 
 \item{sd.1}{the residual standard deviation (noise)}
 
-\item{conf.num.vec}{a numeric vector of length 4 containing the number of confounder, known confounder, intermediate,
-and common child variables (in that order). To exclude a variable type, input a zero at the given position.}
+\item{conf.num.vec}{a numeric vector of length 4 containing the number of known confounders,
+unknown confounder, intermediate, and common child variables (in that order). To exclude a variable type,
+input a zero at the given position.}
 
 \item{number.of.T}{a numeric indicating the number of T variables desired for model == "custom" only}
 
@@ -70,6 +71,7 @@ using the topological order.
 \examples{
 # simulate 1000 samples from a model 1 graph with one of each confounder and
 # plot the graph.
+\dontrun{
 X=simData.from.graph(theta=0.2,
                      model="model1",
                      b0.1=0,
@@ -82,4 +84,5 @@ X=simData.from.graph(theta=0.2,
                      sample.size = 1000,
                      conf.coef.ranges=list(U=c(0.15,0.5), K=c(0.01, 0.1),
                                            W=c(0.15,0.5), Z=c(1, 1.5)))
+}
 }
