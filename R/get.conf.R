@@ -74,12 +74,18 @@ get.conf=function(trios=NULL, PCscores=NULL, blocksize=2000, apply.qval=TRUE, FD
     triomat=trios
   }
 
+  #catch columns with only 2 or less non-NA values and return their indices
+  non.na.vals = apply(triomat, 2, function(x) length(na.omit(x)))
+  if(any(non.na.vals<=2)){
+    stop(paste0("some columns of \"trios\" contain <= 2 non-NA values: The columns are ", paste0(which(non.na.vals<=2))))
+  }
+
   #make colnames unique to avoid error in bigcor
-  colnames(triomat) <- make.unique(colnames(triomat)) #duplicated colnames
+  colnames(triomat) = make.unique(colnames(triomat)) #duplicated colnames
   #get the sample sizes used in each pairwise correlation calculation
-  sample.sizes=apply(triomat,2, function(x) length(na.omit(x)))
+  sample.sizes = apply(triomat, 2, function(x) length(na.omit(x)))
   #calculate the correlations of each PC with the trios
-  cormat=propagate::bigcor(triomat, PCscores, verbose = T, use="pairwise.complete.obs", size = blocksize)
+  cormat = propagate::bigcor(triomat, PCscores, verbose = T, use = "pairwise.complete.obs", size = blocksize)
 
   switch(method, regression = {
 
