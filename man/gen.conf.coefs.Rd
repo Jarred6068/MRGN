@@ -5,7 +5,8 @@
 \title{A function to generate effects for effects in the graph}
 \usage{
 gen.conf.coefs(
-  parental.list = NULL,
+  Adj = NULL,
+  topo = NULL,
   b.snp = NULL,
   b.med = NULL,
   coef.range.list = NULL,
@@ -13,7 +14,7 @@ gen.conf.coefs(
 )
 }
 \arguments{
-\item{parental.list}{a list of the parents of the given node}
+\item{Adj}{the adjacency matrix of the graph}
 
 \item{b.snp}{the desired effect for all edges with the genetic variant}
 
