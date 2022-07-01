@@ -6,11 +6,15 @@
 \usage{
 gen.graph.skel(
   model,
+  b.snp,
+  b.med,
   conf.num.vec,
   number.of.T,
   number.of.V,
   struct,
-  plot.graph = TRUE
+  plot.graph = TRUE,
+  conf.coef.ranges = list(K = c(0.01, 0.1), U = c(0.15, 0.5), W = c(0.15, 0.5), Z =
+    c(1, 1.5))
 )
 }
 \arguments{
@@ -37,6 +41,6 @@ This function simulates a graph adjacency matrix for a desired topology such as 
 graphs such that they include confounder, intermediate, and common child variables.
 }
 \examples{
-# generate a model 0 graph with one of each type of confounding variables
-adj = gen.graph.skel(model = "model0", conf.num.vec = c(1,1,1,1))
+# generate a model 1 graph with one of each type of confounding variables
+adj = gen.graph.skel(model = "model1", b.snp=0.8, b.med=0.6, conf.num.vec = c(1,1,1,1))
 }
