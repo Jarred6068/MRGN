@@ -395,16 +395,16 @@ gen.graph.skel = function(model, conf.num.vec, number.of.T, number.of.V, struct,
 #'
 #' @param location the column index of the node of interest in the adjacency matrix
 #' @param Adjacency an adjacency matrix for the graph
-#' @return an adjacency matrix
+#' @return a list of length 6 representing the 6 nodes types, V,T,K,U,W,Z
 
 find.parents = function(Adjacency, location){
   #define letter identifier for node types
-  letter.id = c("V","T","U","K","W")
+  letter.id = c("V","T","K","U","W","Z")
   all.parents = row.names(Adjacency)[which(Adjacency[, location] == 1)]
   #allocate each type of parent indexes to list by type
   parent.list = lapply(letter.id,function(x,y,z){if(any(grepl(x,y))) match(y[which(grepl(x,y))], z) else NA},
                        y = all.parents, z = colnames(Adjacency))
-  names(parent.list)=c("V", "T","U","K","W")
+  names(parent.list)=c("V","T","K","U","W","Z")
 
   return(parent.list)
 }
@@ -423,20 +423,20 @@ find.parents = function(Adjacency, location){
 #' @param neg.freq the frequency of negative effects for a given variable
 #' @return a list of length 6 containing the simulated effects for each type of variable
 
-gen.conf.coefs=function(parental.list = NULL, b.snp=NULL, b.med=NULL, num.z=NULL, coef.range.list=NULL, neg.freq=0.5){
+gen.conf.coefs=function(parental.list = NULL, b.snp=NULL, b.med=NULL, coef.range.list=NULL, neg.freq=0.5){
 
   #simulation of effects of variables
   #preallocate list of effects
   sim.effects = vector("list", length = 6)
   #name elements according to var type
-  names(sim.effects) = c("V","T","U","K","W", "Z")
+  names(sim.effects) = c("V","T","K","U","W","Z")
   #pass the desired snp and mediation effects
   sim.effects[[1]] = b.snp
   sim.effects[[2]] = b.med
   #simulate effects of U,K,W, and Z vars from ranges in coef.range.list
   for(i in 3:6){
     if(i == 6){
-      number.of.confs = num.z
+      number.of.confs = length(parental.list[which(!is.na(parental.list))])
     }else{
       number.of.confs = length(parental.list[[i]])
     }
@@ -503,35 +503,28 @@ gen.conf.coefs=function(parental.list = NULL, b.snp=NULL, b.med=NULL, num.z=NULL
 
 simData.from.graph = function(model, theta, b0.1, b.snp, b.med, sd.1, conf.num.vec, number.of.T, number.of.V,
                               struct, simulate.confs = TRUE, conf.mat, sample.size, plot.graph = TRUE,
-                              conf.coef.ranges=list(U=c(0.15,0.5), K=c(0.01, 0.1), W=c(0.15,0.5), Z=c(1, 1.5))){
-
-  # #for use of real confounders or setting sample size to simulate all confounders
-  # if(simulate.confs==TRUE){
-  #   if(missing(sample.size)){stop("missing sample.size: must supply one of G or sample.size")}
-  #   if(sum(conf.num.vec[1:2])==0){stop("confounders = 0: Must specify the number of U and K nodes")}
-  #   N = sample.size
-  #   conf.mat = mvtnorm::rmvnorm(N, mean = rnorm(sum(conf.num.vec[1:2])),
-  #                               sigma = diag(sum(conf.num.vec[1:2])))
-  #   if(conf.num.vec[1]==0){
-  #     colnames(conf.mat) = c(paste0("K", 1:conf.num.vec[2]))
-  #   }else if(conf.num.vec[2]==0){
-  #     colnames(conf.mat) = c(paste0("U", 1:conf.num.vec[1]))
-  #   }else{
-  #     colnames(conf.mat) = c(paste0("U", 1:conf.num.vec[1]), paste0("K", 1:conf.num.vec[2]))
-  #   }
-  # }else{
-  #   N = dim(conf.mat)[1]
-  # }
+                              conf.coef.ranges=list(K=c(0.01, 0.1), U=c(0.15,0.5), W=c(0.15,0.5), Z=c(1, 1.5))){
 
   #generate the graph
   graph.skel = gen.graph.skel(model = model, conf.num.vec = conf.num.vec, number.of.T = number.of.T,
-                             number.of.V = number.of.V, struct = struct, plot.graph = plot.graph)
+                              number.of.V = number.of.V, struct = struct, plot.graph = plot.graph)
+
+  # #for use of real confounders or setting sample size to simulate all confounders
+   if(simulate.confs==TRUE){
+     if(missing(sample.size)){stop("missing sample.size: must supply sample.size when simulate.confs = TRUE")}
+     N = sample.size
+   }else{
+     if(missing(conf.mat)){stop("missing conf.mat: must supply conf.mat when simulate.confs = FALSE")}
+     N = dim(conf.mat)[1]
+   }
+
   #preallocate data matrix
   X = as.data.frame(matrix(0, nrow = N, ncol = dim(graph.skel$adjacency)[2]))
   colnames(X) = colnames(graph.skel$adjacency)
   #add in the confounding variables
-  X[,match(colnames(conf.mat), colnames(graph.skel$adjacency))] = conf.mat
-  #convert adjacency to igraph
+  if(!missing(conf.mat)){
+    X[,match(colnames(conf.mat), colnames(graph.skel$adjacency))] = conf.mat
+  }
 
   #get the topological ordering
   topo.order = colnames(graph.skel$adjacency)[as.vector(igraph::topo_sort(graph.skel$igraph.obj))]
@@ -545,46 +538,40 @@ simData.from.graph = function(model, theta, b0.1, b.snp, b.med, sd.1, conf.num.v
     if(grepl("V", topo.order[i])){
       X[,location] = c(sample(c(0, 1, 2), size = N, replace = TRUE,
                               prob = c((1 -theta)^2, 2 * theta * (1 - theta), theta^2)))
-
-      #generate T nodes in topo order
-    }else if(grepl("T", topo.order[i])){
+    }else{
       #catch nodes with no parents of any kind
-      if(sum(unlist(lapply(parent.list, is.na)))==5){
-        if(any(c("K", "U") == topo.order[i]) & missing(conf.mat)){
-          #generate node
+      if(sum(unlist(lapply(parent.list, is.na)))==6){
+        if(any(sapply(c("K", "U"),grepl, x=topo.order[i])) & missing(conf.mat)){
+          #generate U,K nodes
           X[, location] = rnorm(n = N, mean = round(runif(1,0,5)), sd = 1)
+        }else{
+          #generate T nodes with no parents
+          X[, location] = rnorm(n = N, mean = b0.1, sd = sd.1)
         }
-
       }else{
-        #get parent idx
-        parent.idx = which(unlist(lapply(parent.list, function(x) !is.na(x[1]))))
-        #generate confounder effects
-        coefs.list = gen.conf.coefs(parental.list = parent.list, b.snp = b.snp, b.med = b.med,
-                                    num.z = conf.num.vec[4], coef.range.list=conf.coef.ranges)
-        print(coefs.list[3:4])
-        #find which effects to use accord to parental list
-        which.coefs = match(names(parent.idx), names(coefs.list))
-        #generate node
-        X[, location] = rnorm(n = N, mean = b0.1 +
-                                as.matrix(X[, unlist(parent.list[parent.idx])])%*%unlist(coefs.list[which.coefs]),
-                              sd = sd.1)
-
+        #since T nodes are more complex we have to handle them first::
+        if(grepl("T", topo.order[i])){
+          #get parent idx
+          parent.idx = which(unlist(lapply(parent.list, function(x) !is.na(x[1]))))
+          #generate confounder effects
+          coefs.list = gen.conf.coefs(parental.list = parent.list, b.snp = b.snp, b.med = b.med,
+                                      coef.range.list=conf.coef.ranges)
+          #find which effects to use accord to parental list
+          which.coefs = match(names(parent.idx), names(coefs.list))
+          #generate node
+          X[, location] = rnorm(n = N, mean = b0.1 +
+                                  as.matrix(X[, unlist(parent.list[parent.idx])])%*%unlist(coefs.list[which.coefs]),
+                                sd = sd.1)
+          #Now deal with W and Z nodes
+        }else{
+          coefs.list = gen.conf.coefs(parental.list = parent.list, b.snp = b.snp, b.med = b.med,
+                                      coef.range.list=conf.coef.ranges)
+          which.coefs = grepl(topo.order[i], names(coefs.list))
+          X[,location] = rnorm(n = N, mean = b0.1 + as.matrix(X[,parent.list$T])%*%coefs.list[[which.coefs]],
+                               sd = sd.1)
+        }
       }
-
-      #create intermediate variables
-    }else if(grepl("W", topo.order[i])){
-
-      coefs.list = gen.conf.coefs(parental.list = parent.list, b.snp = b.snp, b.med = b.med,
-                                  num.z = length(parent.list$T), coef.range.list=conf.coef.ranges)
-      X[,location] = rnorm(n = N, mean = b0.1 + as.matrix(X[,parent.list$T])%*%coefs.list$W, sd = sd.1)
-
-      #create child variables
-    }else if(grepl("Z", topo.order[i])){
-      coefs.list = gen.conf.coefs(parental.list = parent.list, b.snp = b.snp, b.med = b.med,
-                                  num.z = length(parent.list$T), coef.range.list=conf.coef.ranges)
-      X[,location] = rnorm(n = N, mean = b0.1 + as.matrix(X[,parent.list$T])%*%coefs.list$Z, sd = sd.1)
     }
-
   }
 
   return(X)
