@@ -12,13 +12,20 @@ gen.graph.skel(
   number.of.T,
   number.of.V,
   struct,
+  degree,
+  method = "er",
   plot.graph = TRUE,
+  neg.freq,
   conf.coef.ranges = list(K = c(0.01, 0.1), U = c(0.15, 0.5), W = c(0.15, 0.5), Z =
     c(1, 1.5))
 )
 }
 \arguments{
 \item{model}{a string specifying one of "model0","model1", "model2", "model3","model4", or "custom"}
+
+\item{b.snp}{a numeric or vector giving the effect(s) of the genetic variant(s).}
+
+\item{b.med}{a numeric or vector giving the effect(s) between the molecular phenotypes(s).}
 
 \item{conf.num.vec}{a numeric vector of length 4 containing the number of confounder, known confounder, intermediate,
 and common child variables (in that order). To exclude a variable type input a zero at the given position.}
@@ -31,16 +38,35 @@ and common child variables (in that order). To exclude a variable type input a z
 (number.of.V + number.of.T  X  number.of.V + number.of.T) definining the topology of the V and T nodes
 or (2) the string "random" denoting a random topology}
 
+\item{degree}{passed to get.custom.graph()}
+
+\item{method}{passed to get.custom.graph()}
+
 \item{plot.graph}{(logical) if TRUE the graph is plotted. default = TRUE}
+
+\item{neg.freq}{the frequency of negative effects for simulated effects. passed to gen.conf.coefs()}
+
+\item{conf.coef.ranges}{a list of length 4 representing the U,K,W, and Z (in that order) node effects where each list
+element is a vector of length 2 giving the minimum and maximum effect sizes for the given node. default values follow
+from the simulations of Yang et. al., 2017. passed to gen.conf.coefs()}
 }
 \value{
-an adjacency matrix
+a list of length 3
+\descript{
+\item{Adjacency} the indicator adjacency matrix of the graph
+\item{effects.Adj} the adjacency matrix with the effects in place of the indicator values
+\item{igraph.obj} an igraph object
+}
 }
 \description{
 This function simulates a graph adjacency matrix for a desired topology such as M0 - M4, custom, or random topological
-graphs such that they include confounder, intermediate, and common child variables.
+graphs such that they include known confounder (denoted K), unkown confounder (denoted U), intermediate (denoted W), and common child
+variables (denoted Z). This function wraps gen.conf.coefs() and get.custom.graph()
 }
 \examples{
 # generate a model 1 graph with one of each type of confounding variables
-adj = gen.graph.skel(model = "model1", b.snp=0.8, b.med=0.6, conf.num.vec = c(1,1,1,1))
+adj = gen.graph.skel(model = "model1",
+                     b.snp=0.8,
+                     b.med=0.6,
+                     conf.num.vec = c(1,1,1,1))
 }

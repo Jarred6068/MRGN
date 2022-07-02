@@ -16,6 +16,7 @@ LazyData: true
 Imports: 
     prodlim,
     igraph,
+    pcalg,
     psych,
     qvalue,
     mvtnorm,

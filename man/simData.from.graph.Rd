@@ -19,6 +19,7 @@ simData.from.graph(
   conf.mat,
   sample.size,
   plot.graph = TRUE,
+  neg.freq,
   conf.coef.ranges = list(K = c(0.01, 0.1), U = c(0.15, 0.5), W = c(0.15, 0.5), Z =
     c(1, 1.5))
 )

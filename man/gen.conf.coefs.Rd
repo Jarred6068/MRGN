@@ -2,34 +2,21 @@
 % Please edit documentation in R/simulate_trios_with_conf.R
 \name{gen.conf.coefs}
 \alias{gen.conf.coefs}
-\title{A function to generate effects for effects in the graph}
+\title{A function to simulate effects for edges in the graph}
 \usage{
-gen.conf.coefs(
-  Adj = NULL,
-  topo = NULL,
-  b.snp = NULL,
-  b.med = NULL,
-  coef.range.list = NULL,
-  neg.freq = 0.5
-)
+gen.conf.coefs(n.effects, coef.range.list, neg.freq)
 }
 \arguments{
-\item{Adj}{the adjacency matrix of the graph}
-
-\item{b.snp}{the desired effect for all edges with the genetic variant}
-
-\item{b.med}{the desired effect for the mediation edge}
+\item{n.effects}{the number of effects to simulate}
 
 \item{coef.range.list}{a list of length 4 containing the mininum and maximum effect size for U,K,W, and Z variables
 (in that order)}
 
 \item{neg.freq}{the frequency of negative effects for a given variable}
-
-\item{num.z}{the number of child variables}
 }
 \value{
-a list of length 6 containing the simulated effects for each type of variable
+a vector of simulated effects
 }
 \description{
-A function to generate effects for effects in the graph
+This function is wrapped by gen.graph.skel() and get.custom.graph()
 }
