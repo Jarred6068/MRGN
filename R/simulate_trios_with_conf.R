@@ -222,21 +222,110 @@ simData=function (theta, model, b0.1, b.snp, b.med, sd.1, G=NULL, u=NULL){
 
 #################################################
 
-#' A function to generate effects for effects in the graph
+#' A function to simulate effects for edges in the graph
+#'
+#' This function is wrapped by gen.graph.skel() and get.custom.graph()
 #'
 #' @param n.effects the number of effects to simulate
 #' @param coef.range.list a list of length 4 containing the mininum and maximum effect size for U,K,W, and Z variables
 #' (in that order)
 #' @param neg.freq the frequency of negative effects for a given variable
+#' @export gen.conf.coefs
 #' @return a vector of simulated effects
 
 gen.conf.coefs=function(n.effects, coef.range.list, neg.freq){
 
-  weights = runif(n.effects, conf.coef.ranges[1], conf.coef.ranges[2])
+  weights = runif(n.effects, coef.range.list[1], coef.range.list[2])
   cointoss = rbinom(n.effects, 1, neg.freq)
   weights[which(cointoss==1)]=-1*weights[which(cointoss==1)]
 
   return(weights)
+
+}
+#################################################
+
+#' A function to fill in an adjacency matrix with all connections between the confounding variable nodes
+#'
+#' @param A The empty adjacency matrix of the graph passed from gen.graph.skel()
+#' @param b.snp either a single number or vector representing the effect(s) of the variant(s)
+#' @param b.med either a single number or vector representing the effect(s) between the molecular phenotypes
+#' @param struct either (1) the string "random" specifying a random DAG between the V and T nodes or (2) an adjacency
+#' matrix of dimension equal to the number of desired T and V nodes giving the connectivity between them
+#' @param conf.num.vec a vector of length 4 giving the number of each type of confounding variables: specifically
+#' of K,U,W, and Z nodes
+#' @param number.of.T the number of T-nodes in the graph
+#' @param number.of.V the number of V-nodes in the graph
+#' @param conf.coef.ranges a list of four 2-length vectors giving the minimum and maximum effect sizes of each
+#' type of confounding variable in the order of K,U,W, and Z
+#' @param neg.freq the frequency for simulated effects to be negative. passed to gen.conf.coefs()
+#' @param degree the expected number of neighbors (sum of in and out degree of the graph) passed to pcalg::randDAG
+#' @param method the method used to generate a random DAG for the V and T nodes when struct = "random". passed to
+#' pcalg::randDAG
+#' @export get.custom.graph
+#' @return The adjacency matrix with all confounding variable node edges added
+
+get.custom.graph = function(Adj, b.snp, b.med, struct, conf.num.vec, number.of.T, number.of.V,
+                            conf.coef.ranges, neg.freq, degree, method = "er"){
+
+  letter.id = c("K","U","W","Z")
+  #storing info
+  V.idx = 1:number.of.V
+  T.idx = (1:number.of.T)+number.of.V
+  #pre-structure steps
+  if(struct == "random"){
+    #random topology for V and T
+    Adj.sub = as(pcalg::randDAG(n = number.of.V+number.of.T, d = degree, method = method),"matrix")
+    #replace with 1's
+    Adj.sub[Adj.sub!=0] = 1
+    #remove all T --> V and V --> V
+    Adj.sub[,V.idx] = 0
+  }else{
+    #custom structure connectivity for V and T
+    if(sum(colSums(Adj.sub[,V.idx]))>1){
+      stop("custom graph contains edges directed towards variants!")
+    }
+    Adj.sub = struct
+  }
+  #create a second matrix for storing the simulation effects
+  coefs.sub = Adj.sub
+  #get the total number of V and T edges
+  number.of.edges.V = sum(Adj.sub[V.idx,])
+  number.of.edges.T = sum(Adj.sub[T.idx,])
+
+  #replace edges with their simulated effects
+  coefs.sub[V.idx,][coefs.sub[V.idx,]==1] = sample(b.snp, number.of.edges.V, replace = TRUE)
+  coefs.sub[T.idx,][coefs.sub[T.idx,]==1] = sample(b.med, number.of.edges.T, replace = TRUE)
+  #convert to igraph and get to the topological ordering
+  topo.order = igraph::topo_sort(igraph::graph_from_adjacency_matrix(Adj.sub))
+  Adj[1:(number.of.V+number.of.T), 1:(number.of.V+number.of.T)] = coefs.sub
+
+  #handle confounders
+  for(i in 1:2){
+    loc = which(grepl(letter.id[i], colnames(Adj)))
+    for(j in loc){
+      weight = gen.conf.coefs(n.effects = 1, coef.range.list = conf.coef.ranges[[i]], neg.freq = neg.freq)
+      Adj[j, sample(T.idx, 2, replace = F)] = weight
+    }
+  }
+
+  #handle intermediate variables
+  loc.int = which(grepl(letter.id[3], colnames(Adj)))
+  for(i in loc.int){
+    weights = gen.conf.coefs(n.effects = 2, coef.range.list = conf.coef.ranges[[3]], neg.freq = neg.freq)
+    child.T = sample(topo.order[-c(1:(number.of.V+1))], 1)
+    loc.in.topo.order = which(topo.order==child.T)
+    parent.T = sample(c(topo.order[(number.of.V+1):(loc.in.topo.order-1)]), 1)
+    Adj[i, child.T] = weights[1]
+    Adj[parent.T, i] = weights[2]
+  }
+
+  loc.cc = which(grepl(letter.id[4], colnames(Adj)))
+  for(i in loc.cc){
+    weight = gen.conf.coefs(n.effects = 1, coef.range.list = conf.coef.ranges[[4]], neg.freq = neg.freq)
+    Adj[sample(T.idx, 2, replace = F), i] = weight
+  }
+
+  return(Adj)
 
 }
 
@@ -245,9 +334,12 @@ gen.conf.coefs=function(n.effects, coef.range.list, neg.freq){
 #' A function to simulate a graph with confounder, intermediate, and common child variables
 #'
 #' This function simulates a graph adjacency matrix for a desired topology such as M0 - M4, custom, or random topological
-#' graphs such that they include confounder, intermediate, and common child variables.
+#' graphs such that they include known confounder (denoted K), unkown confounder (denoted U), intermediate (denoted W), and common child
+#' variables (denoted Z). This function wraps gen.conf.coefs() and get.custom.graph()
 #'
 #' @param model a string specifying one of "model0","model1", "model2", "model3","model4", or "custom"
+#' @param b.snp a numeric or vector giving the effect(s) of the genetic variant(s).
+#' @param b.med a numeric or vector giving the effect(s) between the molecular phenotypes(s).
 #' @param conf.num.vec a numeric vector of length 4 containing the number of confounder, known confounder, intermediate,
 #' and common child variables (in that order). To exclude a variable type input a zero at the given position.
 #' @param number.of.T a numeric indicating the number of T variables desired for model == "custom" only
@@ -255,9 +347,20 @@ gen.conf.coefs=function(n.effects, coef.range.list, neg.freq){
 #' @param struct For use when when model == "custom". Either (1) a sub-adjacency matrix of dimension
 #' (number.of.V + number.of.T  X  number.of.V + number.of.T) definining the topology of the V and T nodes
 #' or (2) the string "random" denoting a random topology
+#' @param degree passed to get.custom.graph()
+#' @param method passed to get.custom.graph()
 #' @param plot.graph (logical) if TRUE the graph is plotted. default = TRUE
-#' @return an adjacency matrix
+#' @param neg.freq the frequency of negative effects for simulated effects. passed to gen.conf.coefs()
+#' @param conf.coef.ranges a list of length 4 representing the U,K,W, and Z (in that order) node effects where each list
+#' element is a vector of length 2 giving the minimum and maximum effect sizes for the given node. default values follow
+#' from the simulations of Yang et. al., 2017. passed to gen.conf.coefs()
 #' @export gen.graph.skel
+#' @return a list of length 3
+#' \descript{
+#'      \item{Adjacency} the indicator adjacency matrix of the graph
+#'      \item{effects.Adj} the adjacency matrix with the effects in place of the indicator values
+#'      \item{igraph.obj} an igraph object
+#' }
 #' @examples
 #' # generate a model 1 graph with one of each type of confounding variables
 #' adj = gen.graph.skel(model = "model1",
@@ -266,7 +369,8 @@ gen.conf.coefs=function(n.effects, coef.range.list, neg.freq){
 #'                      conf.num.vec = c(1,1,1,1))
 
 #creates the graph skeleton for each model: contains u, k, w, and z variables in adj.
-gen.graph.skel = function(model, b.snp, b.med, conf.num.vec, number.of.T, number.of.V, struct, plot.graph = TRUE,
+gen.graph.skel = function(model, b.snp, b.med, conf.num.vec, number.of.T, number.of.V, struct,
+                          degree, method = "er", plot.graph = TRUE, neg.freq,
                           conf.coef.ranges=list(K=c(0.01, 0.1), U=c(0.15,0.5), W=c(0.15,0.5), Z=c(1, 1.5))){
 
   #preallocate names
@@ -334,40 +438,9 @@ gen.graph.skel = function(model, b.snp, b.med, conf.num.vec, number.of.T, number
     #----------custom-model-----------
   }, custom = {
 
-    if(struct == "random"){
-      #random topology for V and T
-      B.sub = as.matrix(igraph::get.adjacency(igraph::random.graph.game(number.of.V+number.of.T, p = 0.5, directed = T)))
-      #remove T --> V
-      B.sub[,1:number.of.V] = 0
-      #remove V --> V
-      B.sub[1:number.of.V, 1:number.of.V] = 0
-
-      #insert topology
-      B[1:(number.of.V+number.of.T), 1:(number.of.V+number.of.T)] = B.sub
-
-      #custom structure connectivity for V and T
-    }else{
-      B[1:(number.of.V+number.of.T), 1:(number.of.V+number.of.T)] = struct
-    }
-
-    #confounders
-    for(i in 1:2){
-      for(j in ((1:number.of.T)+number.of.V)){
-        B[which(grepl(letter.id[i],conf.node.names))+number.of.T+number.of.V, j] = 1
-      }
-    }
-    #intermediate
-    B[which(grepl("W",conf.node.names))+number.of.T+number.of.V,
-      sample(c(1:number.of.T)+number.of.V, round(runif(1,1, number.of.T)), replace = F)] = 1
-    B[sample(c(1:number.of.T)+number.of.V, round(runif(1,1, number.of.T)), replace = F),
-      which(grepl("W",conf.node.names))+number.of.T+number.of.V] = 1
-
-    #common child
-    for(k in ((1:number.of.T)+number.of.V)){
-      B[k, which(grepl("Z",conf.node.names))+number.of.T+number.of.V] = 1
-    }
-
-    diag(B) = 0
+    B = get.custom.graph(Adj = B, b.snp = b.snp, b.med = b.med, struct = struct, conf.num.vec = conf.num.vec,
+                         number.of.T = number.of.T, number.of.V = number.of.V, conf.coef.ranges = conf.coef.ranges,
+                         neg.freq = neg.freq, degree = degree, method = method)
 
     A = B
     A[A!=0] = 1
@@ -496,12 +569,14 @@ find.parents = function(Adjacency, location){
 
 
 simData.from.graph = function(model, theta, b0.1, b.snp, b.med, sd.1, conf.num.vec, number.of.T, number.of.V,
-                              struct, simulate.confs = TRUE, conf.mat, sample.size, plot.graph = TRUE,
+                              struct, simulate.confs = TRUE, conf.mat, sample.size, plot.graph = TRUE, neg.freq,
                               conf.coef.ranges=list(K=c(0.01, 0.1), U=c(0.15,0.5), W=c(0.15,0.5), Z=c(1, 1.5))){
 
   #generate the graph
   graph.skel = gen.graph.skel(model = model, conf.num.vec = conf.num.vec, number.of.T = number.of.T,
-                              number.of.V = number.of.V, struct = struct, plot.graph = plot.graph)
+                              number.of.V = number.of.V, struct = struct, plot.graph = plot.graph,
+                              conf.coef.ranges = conf.coef.ranges, b.med = b.med, b.snp = b.snp,
+                              neg.freq = neg.freq)
 
   # #for use of real confounders or setting sample size to simulate all confounders
    if(simulate.confs==TRUE){
