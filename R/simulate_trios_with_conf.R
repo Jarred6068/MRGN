@@ -314,7 +314,15 @@ get.custom.graph = function(Adj, b.snp, b.med, struct, conf.num.vec, number.of.T
     weights = gen.conf.coefs(n.effects = 2, coef.range.list = conf.coef.ranges[[3]], neg.freq = neg.freq)
     child.T = sample(topo.order[-c(1:(number.of.V+1))], 1)
     loc.in.topo.order = which(topo.order==child.T)
-    parent.T = sample(c(topo.order[(number.of.V+1):(loc.in.topo.order-1)]), 1)
+    poss.parents = c(topo.order[(number.of.V+1):(loc.in.topo.order-1)])
+    if(length(poss.parents)>1){
+      parent.T = sample(poss.parents, 1)
+    }else{
+      parent.T = poss.parents
+    }
+    # print(colnames(Adj)[topo.order])
+    # print(colnames(Adj)[child.T])
+    # print(colnames(Adj)[parent.T])
     Adj[i, child.T] = weights[1]
     Adj[parent.T, i] = weights[2]
   }
@@ -539,6 +547,9 @@ find.parents = function(Adjacency, location){
 #' @param struct For use when when model == "custom". Either (1) a sub-adjacency matrix of dimension
 #' (number.of.V + number.of.T  X  number.of.V + number.of.T) definining the topology of the V and T nodes
 #' or (2) the string "random" denoting a random topology
+#' @param neg.freq the frequency of negative effects for simulated effects. passed to gen.conf.coefs()
+#' @param degree passed to get.custom.graph()
+#' @param method passed to get.custom.graph()
 #' @param simulate.confs (logical) indicating if U and K nodes should be simulated (default = TRUE).
 #' @param conf.mat For use when simulate.confs = FALSE. A dataframe with confounders (U and K nodes) in columns
 #' and observations in rows. Note that the number of observations fixes the sample size for the simulation.
@@ -547,7 +558,13 @@ find.parents = function(Adjacency, location){
 #' @param conf.coef.ranges a list of length 4 representing the U,K,W, and Z (in that order) node effects where each list
 #' element is a vector of length 2 giving the minimum and maximum effect sizes for the given node. default values follow
 #' from the simulations of Yang et. al., 2017
-#' @return an adjacency matrix
+#' @return a list of four elements
+#' \describe{
+#'    \item{data} - a dataframe of the simulated data representing the network and its confounding variables
+#'    \item{Adjacency} - The adjacency matrix of the network graph
+#'    \item{Effects} - the adjacency matrix containing the effects used to simulate each node
+#'    \item{igraph} - the igraph object representing the network
+#' }
 #' @export simData.from.graph
 #' @examples
 #' # simulate 1000 samples from a model 1 graph with one of each confounder and
@@ -569,14 +586,17 @@ find.parents = function(Adjacency, location){
 
 
 simData.from.graph = function(model, theta, b0.1, b.snp, b.med, sd.1, conf.num.vec, number.of.T, number.of.V,
-                              struct, simulate.confs = TRUE, conf.mat, sample.size, plot.graph = TRUE, neg.freq,
-                              conf.coef.ranges=list(K=c(0.01, 0.1), U=c(0.15,0.5), W=c(0.15,0.5), Z=c(1, 1.5))){
+                              struct, neg.freq = 0.5, degree = 2, method = "er", simulate.confs = TRUE,
+                              conf.mat, sample.size, plot.graph = TRUE, conf.coef.ranges=list(K=c(0.01, 0.1),
+                                                                                              U=c(0.15,0.5),
+                                                                                              W=c(0.15,0.5),
+                                                                                              Z=c(1, 1.5))){
 
   #generate the graph
-  graph.skel = gen.graph.skel(model = model, conf.num.vec = conf.num.vec, number.of.T = number.of.T,
+  graph.attr = gen.graph.skel(model = model, conf.num.vec = conf.num.vec, number.of.T = number.of.T,
                               number.of.V = number.of.V, struct = struct, plot.graph = plot.graph,
                               conf.coef.ranges = conf.coef.ranges, b.med = b.med, b.snp = b.snp,
-                              neg.freq = neg.freq)
+                              neg.freq = neg.freq, degree = degree, method = method)
 
   # #for use of real confounders or setting sample size to simulate all confounders
    if(simulate.confs==TRUE){
@@ -588,21 +608,21 @@ simData.from.graph = function(model, theta, b0.1, b.snp, b.med, sd.1, conf.num.v
    }
 
   #preallocate data matrix
-  X = as.data.frame(matrix(0, nrow = N, ncol = dim(graph.skel$adjacency)[2]))
-  colnames(X) = colnames(graph.skel$adjacency)
+  X = as.data.frame(matrix(0, nrow = N, ncol = dim(graph.attr$adjacency)[2]))
+  colnames(X) = colnames(graph.attr$adjacency)
   #add in the confounding variables
   if(!missing(conf.mat)){
-    X[,match(colnames(conf.mat), colnames(graph.skel$adjacency))] = conf.mat
+    X[,match(colnames(conf.mat), colnames(graph.attr$adjacency))] = conf.mat
   }
 
   #get the topological ordering
-  topo.order = colnames(graph.skel$adjacency)[as.vector(igraph::topo_sort(graph.skel$igraph.obj))]
+  topo.order = colnames(graph.attr$adjacency)[as.vector(igraph::topo_sort(graph.attr$igraph.obj))]
 
   for(i in 1:length(topo.order)){
 
     #generate V nodes in topo order
-    location = match(topo.order[i], colnames(graph.skel$adjacency))
-    parent.list = find.parents(Adjacency = graph.skel$adjacency, location = location)
+    location = match(topo.order[i], colnames(graph.attr$adjacency))
+    parent.list = find.parents(Adjacency = graph.attr$adjacency, location = location)
 
     if(grepl("V", topo.order[i])){
       X[,location] = c(sample(c(0, 1, 2), size = N, replace = TRUE,
@@ -612,32 +632,34 @@ simData.from.graph = function(model, theta, b0.1, b.snp, b.med, sd.1, conf.num.v
       if(sum(unlist(lapply(parent.list, is.na)))==6){
         if(any(sapply(c("K", "U"),grepl, x=topo.order[i])) & missing(conf.mat)){
           #generate U,K nodes
-          X[, location] = rnorm(n = N, mean = round(runif(1,0,5)), sd = 1)
+          X[, location] = rnorm(n = N, mean = b0.1, sd = sd.1)
         }else{
           #generate T nodes with no parents
           X[, location] = rnorm(n = N, mean = b0.1, sd = sd.1)
         }
       }else{
         #get parent idx
-        parent.idx = which(unlist(lapply(parent.list, function(x) !is.na(x[1]))))
+        #parent.idx = which(unlist(lapply(parent.list, function(x) !is.na(x[1]))))
         #generate confounder effects
-        coefs.list = gen.conf.coefs(parental.list = parent.list, b.snp = b.snp, b.med = b.med,
-                                    coef.range.list=conf.coef.ranges)
+        coefs = graph.attr$effects.adj[na.omit(unlist(parent.list)), topo.order[i]]
+
         #find which effects to use accord to parental list
-        if(any(sapply(c("W", "Z"),grepl, x=topo.order[i]))){
-          which.coefs = match(substring(topo.order[i],1,1), names(coefs.list))
-        }else{
-          which.coefs = match(names(parent.idx), names(coefs.list))
-        }
+        # if(any(sapply(c("W", "Z"),grepl, x=topo.order[i]))){
+        #   which.coefs = match(substring(topo.order[i],1,1), names(coefs.list))
+        # }else{
+        #   which.coefs = match(names(parent.idx), names(coefs.list))
+        # }
         #generate node
         X[, location] = rnorm(n = N, mean = b0.1 +
-                                as.matrix(X[, unlist(parent.list[parent.idx])])%*%unlist(coefs.list[which.coefs]),
-                              sd = sd.1)
+                                as.matrix(X[, na.omit(unlist(parent.list))])%*%coefs, sd = sd.1)
       }
     }
   }
 
-  return(X)
+  return(list(data = X,
+              Adjacency = graph.attr$adjacency,
+              Effects = graph.attr$effects.adj,
+              igraph = graph.attr$igraph.obj))
 
 }
 
