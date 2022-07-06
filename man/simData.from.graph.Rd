@@ -86,7 +86,7 @@ This function wraps gen.graph.skel(), gen.conf.coef(), and find.parents() to sim
 using the topological order.
 }
 \examples{
-# simulate 1000 samples from a model 1 graph with one of each confounder and
+# simulate 1000 samples from a model 1 graph with one of each type of confounding variable and
 # plot the graph.
 \dontrun{
 X=simData.from.graph(theta=0.2,
