@@ -275,6 +275,13 @@ get.custom.graph = function(Adj, b.snp, b.med, struct, conf.num.vec, number.of.T
     Adj.sub[Adj.sub!=0] = 1
     #remove all T --> V and V --> V
     Adj.sub[,V.idx] = 0
+
+    #handle v nodes with no edges: if no edges draw edges from bernoulli sequence
+    for(i in 1:number.of.V){
+      if(sum(Adj.sub[V.idx[i],])==0){
+        Adj.sub[V.idx[i], T.idx] = rbinom(number.of.T, 1, prob = 0.5)
+      }
+    }
   }else{
     #custom structure connectivity for V and T
     if(sum(colSums(Adj.sub[,V.idx]))>1){
@@ -468,7 +475,11 @@ gen.graph.skel = function(model, b.snp, b.med, conf.num.vec, number.of.T, number
     A[A!=0] = 1
     igraph.obj = igraph::graph_from_adjacency_matrix(A)
     if(plot.graph == TRUE){
+      sub.graph.ind = 1:(number.of.V+number.of.T)
+      par(mfrow = c(1,2))
       igraph::plot.igraph(igraph.obj, layout = igraph::layout_nicely, edge.arrow.size = 0.2)
+      igraph::plot.igraph(igraph::graph_from_adjacency_matrix(A[sub.graph.ind,sub.graph.ind]),
+                          layout = igraph::layout_nicely, edge.arrow.size = 0.2, vertex.color = "green")
     }
 
     return(list(adjacency = A, effects.adj = B, igraph.obj = igraph.obj))
@@ -509,7 +520,11 @@ gen.graph.skel = function(model, b.snp, b.med, conf.num.vec, number.of.T, number
   A[A!=0] = 1
   igraph.obj = igraph::graph_from_adjacency_matrix(A)
   if(plot.graph == TRUE){
+    sub.graph.ind = 1:(number.of.V+number.of.T)
+    par(mfrow = c(1,2))
     igraph::plot.igraph(igraph.obj, layout = igraph::layout_nicely, edge.arrow.size = 0.2)
+    igraph::plot.igraph(igraph::graph_from_adjacency_matrix(A[sub.graph.ind,sub.graph.ind]),
+                        layout = igraph::layout_nicely, edge.arrow.size = 0.2, vertex.color = "green")
   }
 
   return(list(adjacency = A, effects.adj = B, igraph.obj = igraph.obj))
