@@ -15,11 +15,13 @@ simData.from.graph(
   number.of.T,
   number.of.V,
   struct,
+  neg.freq = 0.5,
+  degree = 2,
+  method = "er",
   simulate.confs = TRUE,
   conf.mat,
   sample.size,
   plot.graph = TRUE,
-  neg.freq,
   conf.coef.ranges = list(K = c(0.01, 0.1), U = c(0.15, 0.5), W = c(0.15, 0.5), Z =
     c(1, 1.5))
 )
@@ -49,6 +51,12 @@ input a zero at the given position.}
 (number.of.V + number.of.T  X  number.of.V + number.of.T) definining the topology of the V and T nodes
 or (2) the string "random" denoting a random topology}
 
+\item{neg.freq}{the frequency of negative effects for simulated effects. passed to gen.conf.coefs()}
+
+\item{degree}{passed to get.custom.graph()}
+
+\item{method}{passed to get.custom.graph()}
+
 \item{simulate.confs}{(logical) indicating if U and K nodes should be simulated (default = TRUE).}
 
 \item{conf.mat}{For use when simulate.confs = FALSE. A dataframe with confounders (U and K nodes) in columns
@@ -63,7 +71,13 @@ element is a vector of length 2 giving the minimum and maximum effect sizes for 
 from the simulations of Yang et. al., 2017}
 }
 \value{
-an adjacency matrix
+a list of four elements
+\describe{
+\item{data} - a dataframe of the simulated data representing the network and its confounding variables
+\item{Adjacency} - The adjacency matrix of the network graph
+\item{Effects} - the adjacency matrix containing the effects used to simulate each node
+\item{igraph} - the igraph object representing the network
+}
 }
 \description{
 This function wraps gen.graph.skel(), gen.conf.coef(), and find.parents() to simulate data from a given graph topology
