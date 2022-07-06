@@ -48,7 +48,7 @@ input a zero at the given position.}
 \item{number.of.V}{a numeric indicating the number of V variables desired for model == "custom" only}
 
 \item{struct}{For use when when model == "custom". Either (1) a sub-adjacency matrix of dimension
-(number.of.V + number.of.T  X  number.of.V + number.of.T) definining the topology of the V and T nodes
+(number.of.V + number.of.T) defining the topology of the V and T nodes
 or (2) the string "random" denoting a random topology}
 
 \item{neg.freq}{the frequency of negative effects for simulated effects. passed to gen.conf.coefs()}
@@ -59,7 +59,7 @@ or (2) the string "random" denoting a random topology}
 
 \item{simulate.confs}{(logical) indicating if U and K nodes should be simulated (default = TRUE).}
 
-\item{conf.mat}{For use when simulate.confs = FALSE. A dataframe with confounders (U and K nodes) in columns
+\item{conf.mat}{For use when simulate.confs = FALSE. A dataframe with confounders (K and U nodes) in columns
 and observations in rows. Note that the number of observations fixes the sample size for the simulation.}
 
 \item{sample.size}{a numeric value greater than 1 specifying the sample size when simulate.confs = TRUE}
@@ -73,10 +73,12 @@ from the simulations of Yang et. al., 2017}
 \value{
 a list of four elements
 \describe{
+
 \item{data} - a dataframe of the simulated data representing the network and its confounding variables
 \item{Adjacency} - The adjacency matrix of the network graph
 \item{Effects} - the adjacency matrix containing the effects used to simulate each node
 \item{igraph} - the igraph object representing the network
+
 }
 }
 \description{

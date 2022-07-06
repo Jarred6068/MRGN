@@ -23,25 +23,21 @@ get.custom.graph(
 
 \item{b.med}{either a single number or vector representing the effect(s) between the molecular phenotypes}
 
-\item{struct}{either (1) the string "random" specifying a random DAG between the V and T nodes or (2) an adjacency
-matrix of dimension equal to the number of desired T and V nodes giving the connectivity between them}
+\item{struct}{either (1) the string "random" specifying a random DAG between the V and T nodes or (2) an adjacency matrix of dimension equal to the number of desired T and V nodes giving the connectivity between them}
 
-\item{conf.num.vec}{a vector of length 4 giving the number of each type of confounding variables: specifically
-of K,U,W, and Z nodes}
+\item{conf.num.vec}{a vector of length 4 giving the number of each type of confounding variables: specifically of K,U,W, and Z nodes}
 
 \item{number.of.T}{the number of T-nodes in the graph}
 
 \item{number.of.V}{the number of V-nodes in the graph}
 
-\item{conf.coef.ranges}{a list of four 2-length vectors giving the minimum and maximum effect sizes of each
-type of confounding variable in the order of K,U,W, and Z}
+\item{conf.coef.ranges}{a list of four 2-length vectors giving the minimum and maximum effect sizes of each type of confounding variable in the order of K,U,W, and Z}
 
 \item{neg.freq}{the frequency for simulated effects to be negative. passed to gen.conf.coefs()}
 
 \item{degree}{the expected number of neighbors (sum of in and out degree of the graph) passed to pcalg::randDAG}
 
-\item{method}{the method used to generate a random DAG for the V and T nodes when struct = "random". passed to
-pcalg::randDAG}
+\item{method}{the method used to generate a random DAG for the V and T nodes when struct = "random". passed to pcalg::randDAG}
 
 \item{A}{The empty adjacency matrix of the graph passed from gen.graph.skel()}
 }

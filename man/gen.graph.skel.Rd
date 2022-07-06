@@ -27,16 +27,13 @@ gen.graph.skel(
 
 \item{b.med}{a numeric or vector giving the effect(s) between the molecular phenotypes(s).}
 
-\item{conf.num.vec}{a numeric vector of length 4 containing the number of confounder, known confounder, intermediate,
-and common child variables (in that order). To exclude a variable type input a zero at the given position.}
+\item{conf.num.vec}{a numeric vector of length 4 containing the number of confounder, known confounder, intermediate, and common child variables (in that order). To exclude a variable type input a zero at the given position.}
 
 \item{number.of.T}{a numeric indicating the number of T variables desired for model == "custom" only}
 
 \item{number.of.V}{a numeric indicating the number of V variables desired for model == "custom" only}
 
-\item{struct}{For use when when model == "custom". Either (1) a sub-adjacency matrix of dimension
-(number.of.V + number.of.T  X  number.of.V + number.of.T) definining the topology of the V and T nodes
-or (2) the string "random" denoting a random topology}
+\item{struct}{For use when when model == "custom". Either (1) a sub-adjacency matrix of dimension (number.of.V + number.of.T X number.of.V + number.of.T) definining the topology of the V and T nodes or (2) the string "random" denoting a random topology}
 
 \item{degree}{passed to get.custom.graph()}
 
@@ -52,10 +49,12 @@ from the simulations of Yang et. al., 2017. passed to gen.conf.coefs()}
 }
 \value{
 a list of length 3
-\descript{
+\describe{
+
 \item{Adjacency} the indicator adjacency matrix of the graph
 \item{effects.Adj} the adjacency matrix with the effects in place of the indicator values
 \item{igraph.obj} an igraph object
+
 }
 }
 \description{
@@ -69,4 +68,23 @@ adj = gen.graph.skel(model = "model1",
                      b.snp=0.8,
                      b.med=0.6,
                      conf.num.vec = c(1,1,1,1))
+
+# generate a custom graph with 2 variants and 4 molecular phenotypes
+\dontrun{
+X=gen.graph.skel(model = "custom",
+                 b.snp = c(0.5,0.6,0.7),
+                 b.med = c(0.2,0.1,0.6),
+                 conf.num.vec = c(1,1,3,1),
+                 number.of.T = 4,
+                 number.of.V = 2,
+                 struct = "random",
+                 degree = 3,
+                 method = "er",
+                 plot.graph = TRUE,
+                 neg.freq =0.5,
+                 conf.coef.ranges=list(K=c(0.01, 0.1),
+                                       U=c(0.15,0.5),
+                                       W=c(0.15,0.5),
+                                       Z=c(1, 1.5)))
+}
 }

@@ -75,7 +75,7 @@ get.conf=function(trios=NULL, PCscores=NULL, blocksize=2000, apply.qval=TRUE, FD
   }
 
   #catch columns with only 2 or less non-NA values and return their indices
-  non.na.vals = apply(triomat, 2, function(x) length(na.omit(x)))
+  non.na.vals = apply(triomat, 2, function(x) length(stats::na.omit(x)))
   if(any(non.na.vals<=2)){
     stop(paste0("some columns of \"trios\" contain <= 2 non-NA values: The column(s) is/are ", paste0(which(non.na.vals<=2))))
   }
