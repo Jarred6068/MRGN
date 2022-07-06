@@ -22,5 +22,6 @@ Imports:
     mvtnorm,
     tmvtnorm,
     ff,
-    propagate
+    propagate,
+    methods
     
