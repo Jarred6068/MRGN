@@ -359,9 +359,9 @@ get.custom.graph = function(Adj, b.snp, b.med, struct, conf.num.vec, number.of.T
 #' @return a list of length 3
 #' \describe{
 #'
-#' \item{Adjacency} the indicator adjacency matrix of the graph
-#' \item{effects.Adj} the adjacency matrix with the effects in place of the indicator values
-#' \item{igraph.obj} an igraph object
+#' \item{Adjacency}{the indicator adjacency matrix of the graph}
+#' \item{effects.Adj}{the adjacency matrix with the effects in place of the indicator values}
+#' \item{igraph.obj}{an igraph object}
 #'
 #' }
 #' @examples
@@ -575,10 +575,10 @@ find.parents = function(Adjacency, location){
 #' @return a list of four elements
 #' \describe{
 #'
-#' \item{data} - a dataframe of the simulated data representing the network and its confounding variables
-#' \item{Adjacency} - The adjacency matrix of the network graph
-#' \item{Effects} - the adjacency matrix containing the effects used to simulate each node
-#' \item{igraph} - the igraph object representing the network
+#' \item{data}{a dataframe of the simulated data representing the network and its confounding variables}
+#' \item{Adjacency}{the adjacency matrix of the network graph}
+#' \item{Effects}{the adjacency matrix containing the effects used to simulate each node}
+#' \item{igraph}{the igraph object representing the network}
 #'
 #' }
 #' @export simData.from.graph

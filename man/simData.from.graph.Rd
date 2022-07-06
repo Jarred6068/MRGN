@@ -74,10 +74,10 @@ from the simulations of Yang et. al., 2017}
 a list of four elements
 \describe{
 
-\item{data} - a dataframe of the simulated data representing the network and its confounding variables
-\item{Adjacency} - The adjacency matrix of the network graph
-\item{Effects} - the adjacency matrix containing the effects used to simulate each node
-\item{igraph} - the igraph object representing the network
+\item{data}{a dataframe of the simulated data representing the network and its confounding variables}
+\item{Adjacency}{the adjacency matrix of the network graph}
+\item{Effects}{the adjacency matrix containing the effects used to simulate each node}
+\item{igraph}{the igraph object representing the network}
 
 }
 }

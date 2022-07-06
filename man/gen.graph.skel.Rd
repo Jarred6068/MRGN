@@ -51,9 +51,9 @@ from the simulations of Yang et. al., 2017. passed to gen.conf.coefs()}
 a list of length 3
 \describe{
 
-\item{Adjacency} the indicator adjacency matrix of the graph
-\item{effects.Adj} the adjacency matrix with the effects in place of the indicator values
-\item{igraph.obj} an igraph object
+\item{Adjacency}{the indicator adjacency matrix of the graph}
+\item{effects.Adj}{the adjacency matrix with the effects in place of the indicator values}
+\item{igraph.obj}{an igraph object}
 
 }
 }
