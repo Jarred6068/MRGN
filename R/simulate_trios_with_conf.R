@@ -583,7 +583,7 @@ find.parents = function(Adjacency, location){
 #' }
 #' @export simData.from.graph
 #' @examples
-#' # simulate 1000 samples from a model 1 graph with one of each confounder and
+#' # simulate 1000 samples from a model 1 graph with one of each type of confounding variable and
 #' # plot the graph.
 #' \dontrun{
 #' X=simData.from.graph(theta=0.2,
