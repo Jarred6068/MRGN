@@ -278,8 +278,8 @@ get.custom.graph = function(Adj, b.snp, b.med, struct, conf.num.vec, number.of.T
 
     #handle v nodes with no edges: if no edges draw edges from bernoulli sequence
     for(i in 1:number.of.V){
-      if(sum(Adj.sub[V.idx[i],])==0){
-        Adj.sub[V.idx[i], T.idx] = stats::rbinom(number.of.T, 1, prob = 0.5)
+      while(sum(Adj.sub[V.idx[i],])<1){
+        Adj.sub[V.idx[i], T.idx] = stats::rbinom(number.of.T, 1, prob = degree/number.of.T)
       }
     }
   }else{
