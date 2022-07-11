@@ -5,7 +5,7 @@
 \alias{M1trio}
 \title{A simulated M1 trio with 1000 observations}
 \format{
-dataframe 650 X 3
+dataframe 1000 X 3
 }
 \usage{
 M1trio
