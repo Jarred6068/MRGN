@@ -580,8 +580,9 @@ find.parents = function(Adjacency, location){
 #' @param degree passed to get.custom.graph()
 #' @param method passed to get.custom.graph()
 #' @param simulate.confs (logical) indicating if U and K nodes should be simulated (default = TRUE).
-#' @param conf.mat For use when simulate.confs = FALSE. A dataframe with confounders (K and U nodes) in columns
-#' and observations in rows. Note that the number of observations fixes the sample size for the simulation.
+#' @param conf.mat For use when simulate.confs = FALSE. A named dataframe with confounders (K and U nodes) in columns
+#' and observations in rows. Note that the number of observations fixes the sample size for the simulation. K nodes should
+#' be first in the columns represented by column names K1, K2 ... etc followed by U nodes with column names U1, U2, ... etc
 #' @param sample.size a numeric value greater than 1 specifying the sample size when simulate.confs = TRUE
 #' @param plot.graph (logical) when FALSE, graph is not plotted (default is TRUE)
 #' @param conf.coef.ranges a list of length 4 representing the U,K,W, and Z (in that order) node effects where each list
@@ -661,8 +662,13 @@ simData.from.graph = function(model, theta, b0.1, b.snp, b.med, sd.1, conf.num.v
     }else{
       #catch nodes with no parents of any kind
       if(sum(unlist(lapply(parent.list, is.na)))==6){
+        if(any(sapply(c("K", "U"),grepl, x=topo.order[i])) & missing(conf.mat)){
+          #generate U,K nodes
+          X[, location] = stats::rnorm(n = N, mean = b0.1, sd = sd.1)
+        }else{
           #generate T nodes with no parents
           X[, location] = stats::rnorm(n = N, mean = b0.1, sd = sd.1)
+        }
       }else{
         #get parent idx
         #parent.idx = which(unlist(lapply(parent.list, function(x) !is.na(x[1]))))
