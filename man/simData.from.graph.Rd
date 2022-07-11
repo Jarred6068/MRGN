@@ -99,7 +99,7 @@ X=simData.from.graph(theta=0.2,
                      simulate.confs = TRUE,
                      plot.graph = TRUE,
                      sample.size = 1000,
-                     conf.coef.ranges=list(U=c(0.15,0.5), K=c(0.01, 0.1),
+                     conf.coef.ranges=list(K=c(0.01, 0.1), U=c(0.15,0.5),
                                            W=c(0.15,0.5), Z=c(1, 1.5)))
 }
 }
