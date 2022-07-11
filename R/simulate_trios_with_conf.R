@@ -351,7 +351,7 @@ get.custom.graph = function(Adj, b.snp, b.med, struct, conf.num.vec, number.of.T
 #' @param model a string specifying one of "model0","model1", "model2", "model3","model4", or "custom"
 #' @param b.snp a numeric or vector giving the effect(s) of the genetic variant(s).
 #' @param b.med a numeric or vector giving the effect(s) between the molecular phenotypes(s).
-#' @param conf.num.vec a numeric vector of length 4 containing the number of unknown confounder, known confounder, intermediate, and common child variables (in that order). To exclude a variable type input a zero at the given position.
+#' @param conf.num.vec a numeric vector of length 4 containing the number of known confounders (K), unknown confounders (U), intermediate (W), and common child variables (Z; in that order). To exclude a variable type input a zero at the given position.
 #' @param number.of.T a numeric indicating the number of T variables desired for model == "custom" only
 #' @param number.of.V a numeric indicating the number of V variables desired for model == "custom" only
 #' @param struct For use when when model == "custom". Either (1) a sub-adjacency matrix of dimension (number.of.V + number.of.T X number.of.V + number.of.T) definining the topology of the V and T nodes or (2) the string "random" denoting a random topology
@@ -493,7 +493,7 @@ gen.graph.skel = function(model, b.snp, b.med, conf.num.vec, number.of.T, number
     if(conf.num.vec[i]>0){
       if(letter.id[i] == "K" | letter.id[i] == "U"){
         for(j in 2:3){
-          weights = gen.conf.coefs(n.effects = conf.num.vec[j-1], coef.range.list = conf.coef.ranges[[j-1]],
+          weights = gen.conf.coefs(n.effects = conf.num.vec[i], coef.range.list = conf.coef.ranges[[i]],
                                    neg.freq = neg.freq)
           B[which(grepl(letter.id[i],conf.node.names))+3, j] = 1*weights
         }
@@ -611,7 +611,7 @@ find.parents = function(Adjacency, location){
 #'                      simulate.confs = TRUE,
 #'                      plot.graph = TRUE,
 #'                      sample.size = 1000,
-#'                      conf.coef.ranges=list(U=c(0.15,0.5), K=c(0.01, 0.1),
+#'                      conf.coef.ranges=list(K=c(0.01, 0.1), U=c(0.15,0.5),
 #'                                            W=c(0.15,0.5), Z=c(1, 1.5)))
 #' }
 
@@ -661,13 +661,8 @@ simData.from.graph = function(model, theta, b0.1, b.snp, b.med, sd.1, conf.num.v
     }else{
       #catch nodes with no parents of any kind
       if(sum(unlist(lapply(parent.list, is.na)))==6){
-        if(any(sapply(c("K", "U"),grepl, x=topo.order[i])) & missing(conf.mat)){
-          #generate U,K nodes
-          X[, location] = stats::rnorm(n = N, mean = b0.1, sd = sd.1)
-        }else{
           #generate T nodes with no parents
           X[, location] = stats::rnorm(n = N, mean = b0.1, sd = sd.1)
-        }
       }else{
         #get parent idx
         #parent.idx = which(unlist(lapply(parent.list, function(x) !is.na(x[1]))))
