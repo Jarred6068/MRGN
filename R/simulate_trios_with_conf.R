@@ -351,7 +351,7 @@ get.custom.graph = function(Adj, b.snp, b.med, struct, conf.num.vec, number.of.T
 #' @param model a string specifying one of "model0","model1", "model2", "model3","model4", or "custom"
 #' @param b.snp a numeric or vector giving the effect(s) of the genetic variant(s).
 #' @param b.med a numeric or vector giving the effect(s) between the molecular phenotypes(s).
-#' @param conf.num.vec a numeric vector of length 4 containing the number of confounder, known confounder, intermediate, and common child variables (in that order). To exclude a variable type input a zero at the given position.
+#' @param conf.num.vec a numeric vector of length 4 containing the number of unknown confounder, known confounder, intermediate, and common child variables (in that order). To exclude a variable type input a zero at the given position.
 #' @param number.of.T a numeric indicating the number of T variables desired for model == "custom" only
 #' @param number.of.V a numeric indicating the number of V variables desired for model == "custom" only
 #' @param struct For use when when model == "custom". Either (1) a sub-adjacency matrix of dimension (number.of.V + number.of.T X number.of.V + number.of.T) definining the topology of the V and T nodes or (2) the string "random" denoting a random topology
@@ -520,7 +520,7 @@ gen.graph.skel = function(model, b.snp, b.med, conf.num.vec, number.of.T, number
   A[A!=0] = 1
   igraph.obj = igraph::graph_from_adjacency_matrix(A)
   if(plot.graph == TRUE){
-    sub.graph.ind = 1:(number.of.V+number.of.T)
+    sub.graph.ind = 1:3
     par(mfrow = c(1,2))
     igraph::plot.igraph(igraph.obj, layout = igraph::layout_nicely, edge.arrow.size = 0.2)
     igraph::plot.igraph(igraph::graph_from_adjacency_matrix(A[sub.graph.ind,sub.graph.ind]),
