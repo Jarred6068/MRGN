@@ -3,9 +3,9 @@
 \docType{data}
 \name{WBtrios}
 \alias{WBtrios}
-\title{8,823 trios formed from the GTEx tissue WholeBlood}
+\title{200 trios formed from the GTEx tissue WholeBlood}
 \format{
-a list of length = 8,823 where each element is an 670 X 3 dataframe where the first
+a list of length = 200 where each element is an 670 X 3 dataframe where the first
 column is an eQTL representing V1 and columns 2:3 are the cis and trans targets representing
 T1 and T2 (respectively)
 }
