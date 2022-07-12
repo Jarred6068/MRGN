@@ -41,7 +41,8 @@ simData.from.graph(
 
 \item{conf.num.vec}{a numeric vector of length 4 containing the number of known confounders,
 unknown confounder, intermediate, and common child variables (in that order). To exclude a variable type,
-input a zero at the given position.}
+input a zero at the given position. Note: intermediate variables (W) cannot be included for model4 and must
+excluded (set to 0)}
 
 \item{number.of.T}{a numeric indicating the number of T variables desired for model == "custom" only}
 
@@ -79,6 +80,8 @@ a list of four elements
 \item{Adjacency}{the adjacency matrix of the network graph}
 \item{Effects}{the adjacency matrix containing the effects used to simulate each node}
 \item{igraph}{the igraph object representing the network}
+\item{true.adj}{only returned when model = "model4". It is the true adjacency matrix of the graph (the graph plotted if plot.graph = TRUE)
+where as the graph represented by \eqn{$adjacency} is the graph used to emulate the model 4 network}
 
 }
 }

@@ -27,7 +27,10 @@ gen.graph.skel(
 
 \item{b.med}{a numeric or vector giving the effect(s) between the molecular phenotypes(s).}
 
-\item{conf.num.vec}{a numeric vector of length 4 containing the number of known confounders (K), unknown confounders (U), intermediate (W), and common child variables (Z; in that order). To exclude a variable type input a zero at the given position.}
+\item{conf.num.vec}{a numeric vector of length 4 containing the number of known confounders (K),
+unknown confounders (U), intermediate (W), and common child variables (Z; in that order).
+To exclude a variable type input a zero at the given position. Note: intermediate variables (W) cannot
+be included for model4 and must excluded (set to zero)}
 
 \item{number.of.T}{a numeric indicating the number of T variables desired for model == "custom" only}
 
@@ -51,9 +54,11 @@ from the simulations of Yang et. al., 2017. passed to gen.conf.coefs()}
 a list of length 3
 \describe{
 
-\item{Adjacency}{the indicator adjacency matrix of the graph}
+\item{adjacency}{the indicator adjacency matrix of the graph}
 \item{effects.Adj}{the adjacency matrix with the effects in place of the indicator values}
 \item{igraph.obj}{an igraph object}
+\item{true.adj}{only returned when model = "model4". It is the true adjacency matrix of the graph (the graph plotted plot.graph = TRUE) where as the
+the graph in $adjacency is the graph used to emulate the model 4 network}
 
 }
 }
