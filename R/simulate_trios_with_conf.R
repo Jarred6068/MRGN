@@ -351,7 +351,10 @@ get.custom.graph = function(Adj, b.snp, b.med, struct, conf.num.vec, number.of.T
 #' @param model a string specifying one of "model0","model1", "model2", "model3","model4", or "custom"
 #' @param b.snp a numeric or vector giving the effect(s) of the genetic variant(s).
 #' @param b.med a numeric or vector giving the effect(s) between the molecular phenotypes(s).
-#' @param conf.num.vec a numeric vector of length 4 containing the number of known confounders (K), unknown confounders (U), intermediate (W), and common child variables (Z; in that order). To exclude a variable type input a zero at the given position.
+#' @param conf.num.vec a numeric vector of length 4 containing the number of known confounders (K),
+#' unknown confounders (U), intermediate (W), and common child variables (Z; in that order).
+#' To exclude a variable type input a zero at the given position. Note: intermediate variables (W) cannot
+#' be included for model4 and must excluded (set to zero)
 #' @param number.of.T a numeric indicating the number of T variables desired for model == "custom" only
 #' @param number.of.V a numeric indicating the number of V variables desired for model == "custom" only
 #' @param struct For use when when model == "custom". Either (1) a sub-adjacency matrix of dimension (number.of.V + number.of.T X number.of.V + number.of.T) definining the topology of the V and T nodes or (2) the string "random" denoting a random topology
@@ -366,9 +369,11 @@ get.custom.graph = function(Adj, b.snp, b.med, struct, conf.num.vec, number.of.T
 #' @return a list of length 3
 #' \describe{
 #'
-#' \item{Adjacency}{the indicator adjacency matrix of the graph}
+#' \item{adjacency}{the indicator adjacency matrix of the graph}
 #' \item{effects.Adj}{the adjacency matrix with the effects in place of the indicator values}
 #' \item{igraph.obj}{an igraph object}
+#' \item{true.adj}{only returned when model = "model4". It is the true adjacency matrix of the graph (the graph plotted plot.graph = TRUE) where as the
+#'                 the graph in $adjacency is the graph used to emulate the model 4 network}
 #'
 #' }
 #' @examples
@@ -471,11 +476,11 @@ gen.graph.skel = function(model, b.snp, b.med, conf.num.vec, number.of.T, number
 
     #----------custom-model-----------
   }, custom = {
-
+    #generate the custom graph::
     B = get.custom.graph(Adj = B, b.snp = b.snp, b.med = b.med, struct = struct, conf.num.vec = conf.num.vec,
                          number.of.T = number.of.T, number.of.V = number.of.V, conf.coef.ranges = conf.coef.ranges,
                          neg.freq = neg.freq, degree = degree, method = method)
-
+    #convert effects mat to adj mat and plot
     A = B
     A[A!=0] = 1
     igraph.obj = igraph::graph_from_adjacency_matrix(A)
@@ -492,11 +497,12 @@ gen.graph.skel = function(model, b.snp, b.med, conf.num.vec, number.of.T, number
   }, stop("Model not included or missing"))
 
   #handle confounders, intermediate, and common child vars for 5 basic topos
-  #confounders
+  #confounders (adding in effects to the effects matrix)
 
   for(i in 1:length(letter.id)){
     if(conf.num.vec[i]>0){
       if(letter.id[i] == "K" | letter.id[i] == "U"){
+        #confounder
         for(j in 2:3){
           weights = gen.conf.coefs(n.effects = conf.num.vec[i], coef.range.list = conf.coef.ranges[[i]],
                                    neg.freq = neg.freq)
@@ -530,7 +536,7 @@ gen.graph.skel = function(model, b.snp, b.med, conf.num.vec, number.of.T, number
       }
     }
   }
-
+  #convert effects mat to adjacency mat and plot
   A = B
   A[A!=0] = 1
   igraph.obj = igraph::graph_from_adjacency_matrix(A)
@@ -542,8 +548,32 @@ gen.graph.skel = function(model, b.snp, b.med, conf.num.vec, number.of.T, number
                         layout = igraph::layout_nicely, edge.arrow.size = 0.2, vertex.color = "green")
   }
 
+  #edit the effects matrix if a model is model4 for later use in simData.from.graph
+  if(model == "model4"){
+    #add in T1.a, T2.a, T2.b, T1.b into the effects matrix while retaining the other vars
+    D = cbind.data.frame(c(B[1,1],rep(0,4),B[-c(1:3),1]),
+                         matrix(0, nrow = dim(B)[1]+2, ncol = 4),
+                         rbind(B[1,-c(1:3)], matrix(0, nrow = 4, ncol = dim(B)[1]-3), B[-c(1:3), -c(1:3)]))
+    #rename cols
+    colnames(D) = row.names(D) = c(colnames(B)[1], c("T1.a","T2.a","T1.b","T2.b"), colnames(B)[-c(1:3)])
+    #add in effects appropriately for topo order
+    #snp effects
+    D[1,2:5] = b.snp
+    #T1 - T2 effects
+    D[2,5] = b.med
+    D[3,4] = b.med
+    #confounder effects
+    D[-c(1:5), 2:5] = B[-c(1:3),2:3]
+    #common child effects
+    D[2:5, which(grepl("Z",colnames(D)))] = B[2:3, which(grepl("Z", colnames(B)))]
+    #convert non-zeros in D to 1 to create adjacency matrix for use with simData.from.graph
+    AA=as.matrix(D)
+    AA[AA!=0]=1
+    igraph.obj = igraph::graph_from_adjacency_matrix(AA)
+    #return
+    return(list(adjacency = AA, effects.adj = as.matrix(D), igraph.obj = igraph.obj, true.adj = A))
+  }
   return(list(adjacency = A, effects.adj = B, igraph.obj = igraph.obj))
-
 }
 
 
@@ -585,7 +615,8 @@ find.parents = function(Adjacency, location){
 #' @param sd.1 the residual standard deviation (noise)
 #' @param conf.num.vec a numeric vector of length 4 containing the number of known confounders,
 #' unknown confounder, intermediate, and common child variables (in that order). To exclude a variable type,
-#' input a zero at the given position.
+#' input a zero at the given position. Note: intermediate variables (W) cannot be included for model4 and must
+#' excluded (set to 0)
 #' @param number.of.T a numeric indicating the number of T variables desired for model == "custom" only
 #' @param number.of.V a numeric indicating the number of V variables desired for model == "custom" only
 #' @param struct For use when when model == "custom". Either (1) a sub-adjacency matrix of dimension
@@ -610,6 +641,8 @@ find.parents = function(Adjacency, location){
 #' \item{Adjacency}{the adjacency matrix of the network graph}
 #' \item{Effects}{the adjacency matrix containing the effects used to simulate each node}
 #' \item{igraph}{the igraph object representing the network}
+#' \item{true.adj}{only returned when model = "model4". It is the true adjacency matrix of the graph (the graph plotted if plot.graph = TRUE)
+#'                 where as the graph represented by \eqn{$adjacency} is the graph used to emulate the model 4 network}
 #'
 #' }
 #' @export simData.from.graph
@@ -660,7 +693,7 @@ simData.from.graph = function(model, theta, b0.1, b.snp, b.med, sd.1, conf.num.v
                                                                                               W=c(0.15,0.5),
                                                                                               Z=c(1, 1.5))){
 
-  #generate the graph
+  #generate the graph from get.graph.skel
   graph.attr = gen.graph.skel(model = model, conf.num.vec = conf.num.vec, number.of.T = number.of.T,
                               number.of.V = number.of.V, struct = struct, plot.graph = plot.graph,
                               conf.coef.ranges = conf.coef.ranges, b.med = b.med, b.snp = b.snp,
@@ -678,17 +711,10 @@ simData.from.graph = function(model, theta, b0.1, b.snp, b.med, sd.1, conf.num.v
   #preallocate data matrix
   X = as.data.frame(matrix(0, nrow = N, ncol = dim(graph.attr$adjacency)[2]))
   colnames(X) = colnames(graph.attr$adjacency)
-  # #add in the confounding variables
-  # if(!missing(conf.mat)){
-  #   X[,match(colnames(conf.mat), colnames(graph.attr$adjacency))] = conf.mat
-  # }
 
   #get the topological ordering
-  if(model == "model4"){
-    topo.order = c("V1", colnames(graph.attr$adjacency)[,(1:sum(conf.num.vec[1:2]))+3], c("T1", "T2"))
-  }else{
-    topo.order = colnames(graph.attr$adjacency)[as.vector(igraph::topo_sort(graph.attr$igraph.obj))]
-  }
+  topo.order = colnames(graph.attr$adjacency)[as.vector(igraph::topo_sort(graph.attr$igraph.obj))]
+
 
   for(i in 1:length(topo.order)){
 
@@ -710,29 +736,38 @@ simData.from.graph = function(model, theta, b0.1, b.snp, b.med, sd.1, conf.num.v
           X[, location] = stats::rnorm(n = N, mean = b0.1, sd = sd.1)
         }
       }else{
-        #get parent idx
-        #parent.idx = which(unlist(lapply(parent.list, function(x) !is.na(x[1]))))
-        #generate confounder effects
+        #simulate all other types of nodes according to parental list, topo.order, and the effects adj
         coefs = graph.attr$effects.adj[stats::na.omit(unlist(parent.list)), topo.order[i]]
-
-        #find which effects to use accord to parental list
-        # if(any(sapply(c("W", "Z"),grepl, x=topo.order[i]))){
-        #   which.coefs = match(substring(topo.order[i],1,1), names(coefs.list))
-        # }else{
-        #   which.coefs = match(names(parent.idx), names(coefs.list))
-        # }
-        #generate node
         X[, location] = stats::rnorm(n = N, mean = b0.1 +
-                                as.matrix(X[, stats::na.omit(unlist(parent.list))])%*%coefs, sd = sd.1)
+                                       as.matrix(X[, stats::na.omit(unlist(parent.list))])%*%coefs, sd = sd.1)
       }
     }
   }
 
-  return(list(data = X,
-              Adjacency = graph.attr$adjacency,
-              Effects = graph.attr$effects.adj,
-              igraph = graph.attr$igraph.obj))
-
+  #shuffle the bi-directed edge and return the matrix with mixed T1 and T2
+  if(model == "model4"){
+    coinToss <- stats::rbinom(n = N, size = 1, prob = 0.5)
+    #shuffling
+    T1 <- rep(0, N)
+    T1[which(coinToss == 0)] <- X$T1.a[which(coinToss == 0)]
+    T1[which(coinToss == 1)] <- X$T1.b[which(coinToss == 1)]
+    T2 <- rep(0, N)
+    T2[which(coinToss == 0)] <- X$T2.a[which(coinToss == 0)]
+    T2[which(coinToss == 1)] <- X$T2.b[which(coinToss == 1)]
+    #now reconfigure data
+    X = cbind.data.frame(V1 = X[,1], T1 = T1, T2 = T2, X[,-c(1:5)])
+    #return adjusted list adding true the adjacency with the true adjacency
+    return(list(data = X,
+                Adjacency = graph.attr$adjacency,
+                Effects = graph.attr$effects.adj,
+                igraph = graph.attr$igraph.obj,
+                true.adj = graph.attr$true.adj))
+  }else{
+    return(list(data = X,
+                Adjacency = graph.attr$adjacency,
+                Effects = graph.attr$effects.adj,
+                igraph = graph.attr$igraph.obj))
+  }
 }
 
 
