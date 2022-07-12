@@ -59,8 +59,9 @@ or (2) the string "random" denoting a random topology}
 
 \item{simulate.confs}{(logical) indicating if U and K nodes should be simulated (default = TRUE).}
 
-\item{conf.mat}{For use when simulate.confs = FALSE. A dataframe with confounders (K and U nodes) in columns
-and observations in rows. Note that the number of observations fixes the sample size for the simulation.}
+\item{conf.mat}{For use when simulate.confs = FALSE. A named dataframe with confounders (K and U nodes) in columns
+and observations in rows. Note that the number of observations fixes the sample size for the simulation. K nodes should
+be first in the columns represented by column names K1, K2 ... etc followed by U nodes with column names U1, U2, ... etc}
 
 \item{sample.size}{a numeric value greater than 1 specifying the sample size when simulate.confs = TRUE}
 
@@ -89,16 +90,37 @@ using the topological order.
 # simulate 1000 samples from a model 1 graph with one of each type of confounding variable and
 # plot the graph.
 \dontrun{
+## using simulated confounders:
 X=simData.from.graph(theta=0.2,
                      model="model1",
                      b0.1=0,
                      b.snp=0.8,
                      b.med=0.6,
                      sd.1=0.8,
-                     conf.num.vec = c(1,1,1,1),
+                     conf.num.vec = c(K = 1, U = 1, W = 1, Z = 1),
                      simulate.confs = TRUE,
                      plot.graph = TRUE,
                      sample.size = 1000,
+                     conf.coef.ranges=list(K=c(0.01, 0.1), U=c(0.15,0.5),
+                                           W=c(0.15,0.5), Z=c(1, 1.5)))
+}
+# simulate from a model 1 graph with one 2 "known" and 8 "unknown" confounders using a set of passed confounders and
+# plot the graph.
+\dontrun{
+## using a set of passed confounders (K and U)
+conf.mat = WBscores[,1:10]
+#rename the columns
+colnames(conf.mat) = c("K1","K2", paste0("U", 1:8))
+X=simData.from.graph(theta=0.2,
+                     model="model1",
+                     b0.1=0,
+                     b.snp=0.8,
+                     b.med=0.6,
+                     sd.1=0.8,
+                     conf.num.vec = c(K = 2, U = 8, W = 1, Z = 1),
+                     simulate.confs = FALSE,
+                     plot.graph = TRUE,
+                     conf.mat = conf.mat,
                      conf.coef.ranges=list(K=c(0.01, 0.1), U=c(0.15,0.5),
                                            W=c(0.15,0.5), Z=c(1, 1.5)))
 }
