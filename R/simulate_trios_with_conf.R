@@ -376,14 +376,14 @@ get.custom.graph = function(Adj, b.snp, b.med, struct, conf.num.vec, number.of.T
 #' adj = gen.graph.skel(model = "model1",
 #'                      b.snp=0.8,
 #'                      b.med=0.6,
-#'                      conf.num.vec = c(1,1,1,1))
+#'                      conf.num.vec = c(K = 1, U = 1, W = 1, Z = 1))
 #'
 #' # generate a custom graph with 2 variants and 4 molecular phenotypes
 #'\dontrun{
 #' X=gen.graph.skel(model = "custom",
 #'                  b.snp = c(0.5,0.6,0.7),
 #'                  b.med = c(0.2,0.1,0.6),
-#'                  conf.num.vec = c(1,1,3,1),
+#'                  conf.num.vec = c(K = 1, U = 1, W = 3, Z = 1),
 #'                  number.of.T = 4,
 #'                  number.of.V = 2,
 #'                  struct = "random",
@@ -460,6 +460,11 @@ gen.graph.skel = function(model, b.snp, b.med, conf.num.vec, number.of.T, number
     #----------model-4-----------
   }, model4 = {
 
+    #catch when model 4 is entered with intermediate variables
+    if(isTRUE(conf.num.vec[3]>0)){
+      stop("Model4 cannot include intermediate variables (W) because it produces cycles, try entering 0 for W in conf.num.vec instead")
+    }
+
     B[1,2:3] = 1*b.snp
     B[2,3] = 1*b.med
     B[3,2] = 1*b.med
@@ -499,12 +504,22 @@ gen.graph.skel = function(model, b.snp, b.med, conf.num.vec, number.of.T, number
         }
       }else if(letter.id[i] == "W"){
         #intermediate
-        weights1 = gen.conf.coefs(n.effects = conf.num.vec[3], coef.range.list = conf.coef.ranges[[3]],
-                                 neg.freq = neg.freq)
-        weights2 = gen.conf.coefs(n.effects = conf.num.vec[3], coef.range.list = conf.coef.ranges[[3]],
-                                 neg.freq = neg.freq)
-        B[which(grepl("W",conf.node.names))+3, 3] = 1*weights1
-        B[2, which(grepl("W",conf.node.names))+3] = 1*weights2
+        if(model == "model2"){
+          weights1 = gen.conf.coefs(n.effects = conf.num.vec[3], coef.range.list = conf.coef.ranges[[3]],
+                                    neg.freq = neg.freq)
+          weights2 = gen.conf.coefs(n.effects = conf.num.vec[3], coef.range.list = conf.coef.ranges[[3]],
+                                    neg.freq = neg.freq)
+          B[which(grepl("W",conf.node.names))+3, 2] = 1*weights1
+          B[3, which(grepl("W",conf.node.names))+3] = 1*weights2
+        }else{
+          weights1 = gen.conf.coefs(n.effects = conf.num.vec[3], coef.range.list = conf.coef.ranges[[3]],
+                                    neg.freq = neg.freq)
+          weights2 = gen.conf.coefs(n.effects = conf.num.vec[3], coef.range.list = conf.coef.ranges[[3]],
+                                    neg.freq = neg.freq)
+          B[which(grepl("W",conf.node.names))+3, 3] = 1*weights1
+          B[2, which(grepl("W",conf.node.names))+3] = 1*weights2
+        }
+
       }else if(letter.id[i] == "Z"){
         #common child
         for(k in 2:3){
@@ -602,16 +617,37 @@ find.parents = function(Adjacency, location){
 #' # simulate 1000 samples from a model 1 graph with one of each type of confounding variable and
 #' # plot the graph.
 #' \dontrun{
+#' ## using simulated confounders:
 #' X=simData.from.graph(theta=0.2,
 #'                      model="model1",
 #'                      b0.1=0,
 #'                      b.snp=0.8,
 #'                      b.med=0.6,
 #'                      sd.1=0.8,
-#'                      conf.num.vec = c(1,1,1,1),
+#'                      conf.num.vec = c(K = 1, U = 1, W = 1, Z = 1),
 #'                      simulate.confs = TRUE,
 #'                      plot.graph = TRUE,
 #'                      sample.size = 1000,
+#'                      conf.coef.ranges=list(K=c(0.01, 0.1), U=c(0.15,0.5),
+#'                                            W=c(0.15,0.5), Z=c(1, 1.5)))
+#' }
+#' # simulate from a model 1 graph with one 2 "known" and 8 "unknown" confounders using a set of passed confounders and
+#' # plot the graph.
+#' \dontrun{
+#' ## using a set of passed confounders (K and U)
+#' conf.mat = WBscores[,1:10]
+#' #rename the columns
+#' colnames(conf.mat) = c("K1","K2", paste0("U", 1:8))
+#' X=simData.from.graph(theta=0.2,
+#'                      model="model1",
+#'                      b0.1=0,
+#'                      b.snp=0.8,
+#'                      b.med=0.6,
+#'                      sd.1=0.8,
+#'                      conf.num.vec = c(K = 2, U = 8, W = 1, Z = 1),
+#'                      simulate.confs = FALSE,
+#'                      plot.graph = TRUE,
+#'                      conf.mat = conf.mat,
 #'                      conf.coef.ranges=list(K=c(0.01, 0.1), U=c(0.15,0.5),
 #'                                            W=c(0.15,0.5), Z=c(1, 1.5)))
 #' }
@@ -642,13 +678,17 @@ simData.from.graph = function(model, theta, b0.1, b.snp, b.med, sd.1, conf.num.v
   #preallocate data matrix
   X = as.data.frame(matrix(0, nrow = N, ncol = dim(graph.attr$adjacency)[2]))
   colnames(X) = colnames(graph.attr$adjacency)
-  #add in the confounding variables
-  if(!missing(conf.mat)){
-    X[,match(colnames(conf.mat), colnames(graph.attr$adjacency))] = conf.mat
-  }
+  # #add in the confounding variables
+  # if(!missing(conf.mat)){
+  #   X[,match(colnames(conf.mat), colnames(graph.attr$adjacency))] = conf.mat
+  # }
 
   #get the topological ordering
-  topo.order = colnames(graph.attr$adjacency)[as.vector(igraph::topo_sort(graph.attr$igraph.obj))]
+  if(model == "model4"){
+    topo.order = c("V1", colnames(graph.attr$adjacency)[,(1:sum(conf.num.vec[1:2]))+3], c("T1", "T2"))
+  }else{
+    topo.order = colnames(graph.attr$adjacency)[as.vector(igraph::topo_sort(graph.attr$igraph.obj))]
+  }
 
   for(i in 1:length(topo.order)){
 
@@ -662,9 +702,9 @@ simData.from.graph = function(model, theta, b0.1, b.snp, b.med, sd.1, conf.num.v
     }else{
       #catch nodes with no parents of any kind
       if(sum(unlist(lapply(parent.list, is.na)))==6){
-        if(any(sapply(c("K", "U"),grepl, x=topo.order[i])) & missing(conf.mat)){
-          #generate U,K nodes
-          X[, location] = stats::rnorm(n = N, mean = b0.1, sd = sd.1)
+        if( isTRUE(any(sapply(c("K", "U"),grepl, x=topo.order[i])) & !missing(conf.mat)) ){
+          # add in confs from conf mat:
+          X[, location] = conf.mat[,match(topo.order[i], colnames(conf.mat))]
         }else{
           #generate T nodes with no parents
           X[, location] = stats::rnorm(n = N, mean = b0.1, sd = sd.1)
