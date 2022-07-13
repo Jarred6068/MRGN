@@ -8,7 +8,7 @@ PermReg.help.fn=function(perm.map=NULL, V=NULL, T1=NULL, T2=NULL, U=NULL, coln=N
     if(is.null(U)){
       new.data=cbind.data.frame(V, T1[perm.map], T2)
     }else{
-      new.data=cbind.data.frame(V, T1, T2[perm.map], U)
+      new.data=cbind.data.frame(V, T1[perm.map], T2, U)
     }
 
   }else{
