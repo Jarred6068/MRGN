@@ -78,7 +78,7 @@ infer.trio=function(trio=NULL, use.perm = TRUE, gamma=0.05, alpha=0.01, nperms=1
   #step 2.1
   if(use.perm == TRUE & minor<gamma){
     #preform permuted regression (section 1.2) for rare variants
-    pvals=PermReg(trio = trio,
+    pvals=PermReg(trio = na.omit(trio),
                   t.obs21 = pt.out$tvals[2],
                   t.obs22 = pt.out$tvals[4],
                   p11 = pt.out$pvals[1],
