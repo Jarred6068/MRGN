@@ -466,13 +466,13 @@ gen.graph.skel = function(model, b.snp, b.med, conf.num.vec, number.of.T, number
   }, model4 = {
 
     #catch when model 4 is entered with intermediate variables
-    if(isTRUE(conf.num.vec[3]>0)){
-      stop("Model4 cannot include intermediate variables (W) because it produces cycles, try entering 0 for W in conf.num.vec instead")
-    }
+    # if(isTRUE(conf.num.vec[3]>0)){
+    #   stop("Model4 cannot include intermediate variables (W) because it produces cycles, try entering 0 for W in conf.num.vec instead")
+    # }
 
     B[1,2:3] = 1*b.snp
     B[2,3] = 1*b.med
-    B[3,2] = 1*b.med
+    #B[3,2] = 1*b.med
 
     #----------custom-model-----------
   }, custom = {
@@ -548,31 +548,31 @@ gen.graph.skel = function(model, b.snp, b.med, conf.num.vec, number.of.T, number
                         layout = igraph::layout_nicely, edge.arrow.size = 0.2, vertex.color = "green")
   }
 
-  #edit the effects matrix if a model is model4 for later use in simData.from.graph
-  if(model == "model4"){
-    #add in T1.a, T2.a, T2.b, T1.b into the effects matrix while retaining the other vars
-    D = cbind.data.frame(c(B[1,1],rep(0,4),B[-c(1:3),1]),
-                         matrix(0, nrow = dim(B)[1]+2, ncol = 4),
-                         rbind(B[1,-c(1:3)], matrix(0, nrow = 4, ncol = dim(B)[1]-3), B[-c(1:3), -c(1:3)]))
-    #rename cols
-    colnames(D) = row.names(D) = c(colnames(B)[1], c("T1.a","T2.a","T1.b","T2.b"), colnames(B)[-c(1:3)])
-    #add in effects appropriately for topo order
-    #snp effects
-    D[1,2:5] = b.snp
-    #T1 - T2 effects
-    D[2,5] = b.med
-    D[3,4] = b.med
-    #confounder effects
-    D[-c(1:5), 2:5] = B[-c(1:3),2:3]
-    #common child effects
-    D[2:5, which(grepl("Z",colnames(D)))] = B[2:3, which(grepl("Z", colnames(B)))]
-    #convert non-zeros in D to 1 to create adjacency matrix for use with simData.from.graph
-    AA=as.matrix(D)
-    AA[AA!=0]=1
-    igraph.obj = igraph::graph_from_adjacency_matrix(AA)
-    #return
-    return(list(adjacency = AA, effects.adj = as.matrix(D), igraph.obj = igraph.obj, true.adj = A))
-  }
+  # #edit the effects matrix if a model is model4 for later use in simData.from.graph
+  # if(model == "model4"){
+  #   #add in T1.a, T2.a, T2.b, T1.b into the effects matrix while retaining the other vars
+  #   D = cbind.data.frame(c(B[1,1],rep(0,4),B[-c(1:3),1]),
+  #                        matrix(0, nrow = dim(B)[1]+2, ncol = 4),
+  #                        rbind(B[1,-c(1:3)], matrix(0, nrow = 4, ncol = dim(B)[1]-3), B[-c(1:3), -c(1:3)]))
+  #   #rename cols
+  #   colnames(D) = row.names(D) = c(colnames(B)[1], c("T1.a","T2.a","T1.b","T2.b"), colnames(B)[-c(1:3)])
+  #   #add in effects appropriately for topo order
+  #   #snp effects
+  #   D[1,2:5] = b.snp
+  #   #T1 - T2 effects
+  #   D[2,5] = b.med
+  #   D[3,4] = b.med
+  #   #confounder effects
+  #   D[-c(1:5), 2:5] = B[-c(1:3),2:3]
+  #   #common child effects
+  #   D[2:5, which(grepl("Z",colnames(D)))] = B[2:3, which(grepl("Z", colnames(B)))]
+  #   #convert non-zeros in D to 1 to create adjacency matrix for use with simData.from.graph
+  #   AA=as.matrix(D)
+  #   AA[AA!=0]=1
+  #   igraph.obj = igraph::graph_from_adjacency_matrix(AA)
+  #   #return
+  #   return(list(adjacency = AA, effects.adj = as.matrix(D), igraph.obj = igraph.obj, true.adj = A))
+  # }
   return(list(adjacency = A, effects.adj = B, igraph.obj = igraph.obj))
 }
 
@@ -745,29 +745,30 @@ simData.from.graph = function(model, theta, b0.1, b.snp, b.med, sd.1, conf.num.v
   }
 
   #shuffle the bi-directed edge and return the matrix with mixed T1 and T2
-  if(model == "model4"){
-    coinToss <- stats::rbinom(n = N, size = 1, prob = 0.5)
-    #shuffling
-    T1 <- rep(0, N)
-    T1[which(coinToss == 0)] <- X$T1.a[which(coinToss == 0)]
-    T1[which(coinToss == 1)] <- X$T1.b[which(coinToss == 1)]
-    T2 <- rep(0, N)
-    T2[which(coinToss == 0)] <- X$T2.a[which(coinToss == 0)]
-    T2[which(coinToss == 1)] <- X$T2.b[which(coinToss == 1)]
-    #now reconfigure data
-    X = cbind.data.frame(V1 = X[,1], T1 = T1, T2 = T2, X[,-c(1:5)])
-    #return adjusted list adding true the adjacency with the true adjacency
-    return(list(data = X,
-                Adjacency = graph.attr$adjacency,
-                Effects = graph.attr$effects.adj,
-                igraph = graph.attr$igraph.obj,
-                true.adj = graph.attr$true.adj))
-  }else{
+  # if(model == "model4"){
+  #   coinToss <- stats::rbinom(n = N, size = 1, prob = 0.5)
+  #   #shuffling
+  #   T1 <- rep(0, N)
+  #   T1[which(coinToss == 0)] <- X$T1.a[which(coinToss == 0)]
+  #   T1[which(coinToss == 1)] <- X$T1.b[which(coinToss == 1)]
+  #   T2 <- rep(0, N)
+  #   T2[which(coinToss == 0)] <- X$T2.a[which(coinToss == 0)]
+  #   T2[which(coinToss == 1)] <- X$T2.b[which(coinToss == 1)]
+  #   #now reconfigure data
+  #   X = cbind.data.frame(V1 = X[,1], T1 = T1, T2 = T2, X[,-c(1:5)])
+  #   #return adjusted list adding true the adjacency with the true adjacency
+  #   return(list(data = X,
+  #               Adjacency = graph.attr$adjacency,
+  #               Effects = graph.attr$effects.adj,
+  #               igraph = graph.attr$igraph.obj,
+  #               true.adj = graph.attr$true.adj))
+  # }else{
+
     return(list(data = X,
                 Adjacency = graph.attr$adjacency,
                 Effects = graph.attr$effects.adj,
                 igraph = graph.attr$igraph.obj))
-  }
+  # }
 }
 
 
