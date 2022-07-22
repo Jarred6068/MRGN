@@ -21,7 +21,7 @@ simData1P=function (N, P1, b0.1, b1.1, sd.1, G=NULL, u=NULL, gamma.u=NULL) {
   if(is.null(u)){
     t <- stats::rnorm(n = N, mean = b0.1 + b1.1 * P1, sd = sd.1)
   }else{
-    U=G[,u]
+    U=as.matrix(G[,u])
     #gamma.u=runif(length(u), min = cs.range[1], max=cs.range[2])
     t <- stats::rnorm(n = N, mean = b0.1 + b1.1 * P1 + U%*%gamma.u, sd = sd.1)
   }
@@ -51,7 +51,7 @@ simData2P=function (N, P1, P2, b0.1, b1.1, b1.2, sd.1, G=NULL, u=NULL, gamma.u=N
   if(is.null(u)){
     t <- stats::rnorm(n = N, mean = b0.1 + b1.1 * P1 + b1.2 * P2, sd = sd.1)
   }else{
-    U=G[,u]
+    U=as.matrix(G[,u])
     #gamma.u=runif(length(u), min = cs.range[1], max = cs.range[2])
     t <- stats::rnorm(n = N, mean = b0.1 + b1.1 * P1 + b1.2 * P2 + U%*%gamma.u, sd = sd.1)
   }
@@ -87,7 +87,7 @@ simDataNP=function (N, b0.1, sd.1, G=NULL, u=NULL, gamma.u = NULL) {
   if(is.null(u)){
     t <- stats::rnorm(n = N, mean = b0.1, sd = sd.1)
   }else{
-    U=G[,u]
+    U=as.matrix(G[,u])
     #gamma.u=runif(length(u), min = cs.range[1], max = cs.range[2])
     t <- stats::rnorm(n = N, mean = b0.1 + U%*%gamma.u, sd = sd.1)
   }
