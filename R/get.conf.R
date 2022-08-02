@@ -5,12 +5,17 @@
 #' or methylation data and performs PC selection
 #'
 #' @param trios either (1) a list where each element contains a dataframe corresponding to a trio or (2) a single data
-#' frame with samples in rows and trios in the columns
+#' frame with samples in rows and trios in the columns. The assumed structure of each trio is that the Genetic variant
+#' is the first column followed by the two molecular phenotypes.
 #' @param PCscores a dataframe of the whole-genome PCA scores with observations in rows and PCs in columns
 #' @param blocksize the number of columns to use in each block of correlation calculations passed to propagate::bigcor
 #' @param apply.qval (logical) \eqn{default = TRUE} applies the qvalue adjustment to each set of correlations between a PC
-#' and the columns of \eqn{trios}. If \eqn{FALSE}, the bonferroni correction is applied.
+#' and the columns of \eqn{trios}. If \eqn{FALSE}, the Bonferroni correction is applied.
 #' @param FDR the false discovery rate (default = 0.10)
+#' @param filter_int_child (logical) to determine if common child and intermediate confounding variables should be filtered out
+#' of the significant confounders. Note: only used when return.for.trios==TRUE. Default = FALSE
+#' @param filter_thresh a numeric giving the FDR threshold for either qvalue or Benjamin - Hochberg adjustment for common child
+#' and intermediate confounding variable filtering.
 #' @param lambda he value of the tuning parameter to estimate \eqn{pi_0}. Must be between 0,1. If is.null(lambda) the default
 #' passed to \eqn{adjust.q()} is \eqn{seq(0.5, max(pvalues), 0.05)}
 #' @param alpha the test threshold for the bonferroni correacted pvalues when \eqn{apply.qval = FALSE}
@@ -62,9 +67,9 @@
 #'}
 
 
-get.conf=function(trios=NULL, PCscores=NULL, blocksize=2000, apply.qval=TRUE, FDR=0.10, lambda=NULL, alpha=0.05,
-                  method = c("correlation, regression"), return.for.trios=TRUE, save.list=FALSE, return.list=TRUE,
-                  save.path="/path/to/save/location"){
+get.conf=function(trios=NULL, PCscores=NULL, blocksize=2000, apply.qval=TRUE, FDR=0.10, filter_int_child = FALSE,
+                  filter_thresh = 0.1, lambda=NULL, alpha=0.05, method = c("correlation, regression"), return.for.trios=TRUE,
+                  save.list=FALSE, return.list=TRUE, save.path="/path/to/save/location"){
 
   #method=match.arg(method)
   #if data entered as list convert to dataframe
@@ -140,6 +145,13 @@ get.conf=function(trios=NULL, PCscores=NULL, blocksize=2000, apply.qval=TRUE, FD
       final.list.sig.asso.pcs=apply(trio.indices, 1,
                                     function(x,y){ list(unique(unlist(y[x[1]:x[2]]))) },
                                     y=sig.asso.pcs)
+      #common child and intermediate variable filtering
+      if(filter_int_child == TRUE){
+        final.list.sig.asso.pcs = filter_out(sig.asso.pcs = final.list.sig.asso.pcs,
+                                             trios = trios,
+                                             PCscores = PCscores,
+                                             filter.fdr = filter_thresh)
+      }
     })
 
     if(return.list==TRUE){
@@ -181,6 +193,7 @@ get.conf=function(trios=NULL, PCscores=NULL, blocksize=2000, apply.qval=TRUE, FD
 #' @param fdr the false discovery rate
 #' @param lambda The value of the tuning parameter to estimate \eqn{pi_0}. Must be in \eqn{[0,1)}
 #' @return an \eqn{n X 2} dataframe containing the qvalues, and significance (logical)
+#' @export adjust.q
 
 
 
@@ -203,6 +216,7 @@ adjust.q=function(p, fdr, lambda){
 #' @param r either (1) a single pearson correlation coefficient or (2) a vector of correlation coefficients
 #' @param n the sample size (if \eqn{length(r)>1} then n must be a vector of sample sizes)
 #' @return an \eqn{n X 2} dataframe containing the correlations and pvalues
+#' @export p.from.cor
 
 
 
@@ -220,6 +234,7 @@ p.from.cor=function(r, n){
 #' @param pc a vector of scores from a given pc (i.e a single column of \eqn{PCscores} in \eqn{get.conf()})
 #' @param genes an \eqn{n X m} dataframe of cis and trans gene pairs of trios
 #' @return an \eqn{1 X (m/2)} vector of pvalues from corresponding to the overall \eqn{F} of the regression
+#' @export p.from.reg
 
 
 p.from.reg=function(pc, genes){
@@ -239,8 +254,53 @@ p.from.reg=function(pc, genes){
   return(pstats)
 }
 
+#' This function takes in the correlations with the genetic variants and performs filtering
+#' of common child and intermediate confounding variables at the fdr threshold given by filter.fdr
+#'
+#' @param sig.asso.pcs a matrix of correlations between the genetic variants the covariate pool of potential confounders
+#' @param filter.fdr the filtering fdr threshold
+#' @param returns a list of the identified common child and intermediate variables for each genetic variant in snpcors
+#' @return an \eqn{n X 2} dataframe containing the qvalues, and significance (logical)
+#' @export filter_out
 
+filter_out = function(sig.asso.pcs, trios, PCscores, filter.fdr){
 
+  if(is.data.frame(trios)==TRUE){
+    trio.indices=cbind( start.col = seq(1,dim(trios)[2],3),
+                        end.col = seq(3,dim(trios)[2],3))
 
+    trios = apply(trio.indices, 1, function(x,y) y[,x[1]:x[2]], y = trios)
+  }
+  #calculate the mean number of confounders selected for each trio by get.conf()
+  #if this value is less than 50 it is unlikely there will be enough pvalue to estimate pi0_est
+  #in qvalue...
+  mean.num.conf = mean(unlist(lapply(sig.asso.pcs, function(x) length(x[[1]]) )))
+  #get the sample sizes for cor calc with each genetic variant (note: assumes the variant is the first column)
+  sample.sizes = unlist(lapply(trios, function(x) length(stats::na.omit(x[,1])) ))
+  # get the correlations between the selected confounders and the SNP
+  cors.list = lapply(c(1:length(trios)), function(x,y,z,w) stats::cor(y[[x]][,1], z[,w[[x]][[1]]], use = "pairwise.complete.obs"),
+                y = trios, z = PCscores, w = sig.asso.pcs)
+  #get the pvalues for each set of correlations
+  p.list = lapply(c(1:length(trios)), function(x,y,z) p.from.cor(r = t(unlist(y[[x]])), n = z[x])$pvalue,
+                  y = cors.list, z = sample.sizes)
+
+  #perform FDR filtering (either qvalue or BH)
+  if(mean.num.conf>=50){
+    message("in filter_out: the mean number of confounders selected for each trio is >50, applying q-value correction for filtering")
+    q.correct = lapply(p.list, qvalue::qvalue, fdr.level = filter.fdr)
+    sig.list = lapply(q.correct)$significant
+  }else{
+    message("in filter_out: the mean number of confounders selected for each trio <50: applying \" BH \" correction for filtering")
+    BH.correct = lapply(p.list, function(x) stats::p.adjust(x, method = "BH") )
+    sig.list = lapply(BH.correct, function(x) x < filter.fdr )
+  }
+
+  #remove the confoundering variables with significant correlation with genetic variant after FDR adjust
+  sig.asso.pcs.filtered = lapply(c(1:length(trios)), function(x,y,z) y[[x]][[1]][-which(z[[x]])],
+                                 y = sig.asso.pcs, z = sig.list)
+  #return filtered list
+  return(sig.asso.pcs.filtered)
+
+}
 
 

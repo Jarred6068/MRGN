@@ -10,6 +10,8 @@ get.conf(
   blocksize = 2000,
   apply.qval = TRUE,
   FDR = 0.1,
+  filter_int_child = FALSE,
+  filter_thresh = 0.1,
   lambda = NULL,
   alpha = 0.05,
   method = c("correlation, regression"),
@@ -21,16 +23,23 @@ get.conf(
 }
 \arguments{
 \item{trios}{either (1) a list where each element contains a dataframe corresponding to a trio or (2) a single data
-frame with samples in rows and trios in the columns}
+frame with samples in rows and trios in the columns. The assumed structure of each trio is that the Genetic variant
+is the first column followed by the two molecular phenotypes.}
 
 \item{PCscores}{a dataframe of the whole-genome PCA scores with observations in rows and PCs in columns}
 
 \item{blocksize}{the number of columns to use in each block of correlation calculations passed to propagate::bigcor}
 
 \item{apply.qval}{(logical) \eqn{default = TRUE} applies the qvalue adjustment to each set of correlations between a PC
-and the columns of \eqn{trios}. If \eqn{FALSE}, the bonferroni correction is applied.}
+and the columns of \eqn{trios}. If \eqn{FALSE}, the Bonferroni correction is applied.}
 
 \item{FDR}{the false discovery rate (default = 0.10)}
+
+\item{filter_int_child}{(logical) to determine if common child and intermediate confounding variables should be filtered out
+of the significant confounders. Note: only used when return.for.trios==TRUE. Default = FALSE}
+
+\item{filter_thresh}{a numeric giving the FDR threshold for either qvalue or Benjamin - Hochberg adjustment for common child
+and intermediate confounding variable filtering.}
 
 \item{lambda}{he value of the tuning parameter to estimate \eqn{pi_0}. Must be between 0,1. If is.null(lambda) the default
 passed to \eqn{adjust.q()} is \eqn{seq(0.5, max(pvalues), 0.05)}}
