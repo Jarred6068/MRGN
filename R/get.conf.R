@@ -98,7 +98,7 @@ get.conf=function(trios=NULL, PCscores=NULL, blocksize=2000, apply.qval=TRUE, FD
     return.for.trios=TRUE
     pc.list=as.list(as.data.frame(PCscores))
     genes=triomat[,-seq(1,dim(triomat)[2], 3)]
-    message("Applying: method = \"regression\", this may take a few second...")
+    message("Applying: method = \"regression\", this step may take some time...")
     p.mat=sapply(pc.list, p.from.reg, genes = genes)
     r.mat = as.data.frame(cormat[,])
 
@@ -134,6 +134,13 @@ get.conf=function(trios=NULL, PCscores=NULL, blocksize=2000, apply.qval=TRUE, FD
       row.names(r.mat)=colnames(triomat)
       #final list of pcs for trios
       final.list.sig.asso.pcs=sig.asso.pcs
+      #common child and intermediate variable filtering
+      if(filter_int_child == TRUE){
+        final.list.sig.asso.pcs = filter_out(sig.asso.pcs = final.list.sig.asso.pcs,
+                                             trios = trios,
+                                             PCscores = PCscores,
+                                             filter.fdr = filter_thresh)
+      }
     }, correlation = {
       #naming
       colnames(sig.mat)=colnames(q.mat)=colnames(r.mat)=colnames(p.mat)=colnames(p.adj.mat)=paste0("PC",1:dim(PCscores)[2])
@@ -254,13 +261,14 @@ p.from.reg=function(pc, genes){
   return(pstats)
 }
 
-#' This function takes in the correlations with the genetic variants and performs filtering
-#' of common child and intermediate confounding variables at the fdr threshold given by filter.fdr
-#'
+#' This function is wrapped by get.conf() when filter_int_child = TRUE. It identifies the confounders from sig.asso.pcs that are
+#' correlated witht he genetic variant and removes them from the final list of confounders.
 #' @param sig.asso.pcs a matrix of correlations between the genetic variants the covariate pool of potential confounders
+#' @param trios see get.conf() for details
+#' @param PCscores see get.conf() for details
 #' @param filter.fdr the filtering fdr threshold
-#' @param returns a list of the identified common child and intermediate variables for each genetic variant in snpcors
-#' @return an \eqn{n X 2} dataframe containing the qvalues, and significance (logical)
+#' @return a list of the significant associated PCs/confounders with the indices of the identified common child and intermediate
+#' confounding variables removed.
 #' @export filter_out
 
 filter_out = function(sig.asso.pcs, trios, PCscores, filter.fdr){

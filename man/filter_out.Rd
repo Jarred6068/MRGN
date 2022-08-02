@@ -2,22 +2,25 @@
 % Please edit documentation in R/get.conf.R
 \name{filter_out}
 \alias{filter_out}
-\title{This function takes in the correlations with the genetic variants and performs filtering
-of common child and intermediate confounding variables at the fdr threshold given by filter.fdr}
+\title{This function is wrapped by get.conf() when filter_int_child = TRUE. It identifies the confounders from sig.asso.pcs that are
+correlated witht he genetic variant and removes them from the final list of confounders.}
 \usage{
 filter_out(sig.asso.pcs, trios, PCscores, filter.fdr)
 }
 \arguments{
 \item{sig.asso.pcs}{a matrix of correlations between the genetic variants the covariate pool of potential confounders}
 
-\item{filter.fdr}{the filtering fdr threshold}
+\item{trios}{see get.conf() for details}
 
-\item{returns}{a list of the identified common child and intermediate variables for each genetic variant in snpcors}
+\item{PCscores}{see get.conf() for details}
+
+\item{filter.fdr}{the filtering fdr threshold}
 }
 \value{
-an \eqn{n X 2} dataframe containing the qvalues, and significance (logical)
+a list of the significant associated PCs/confounders with the indices of the identified common child and intermediate
+confounding variables removed.
 }
 \description{
-This function takes in the correlations with the genetic variants and performs filtering
-of common child and intermediate confounding variables at the fdr threshold given by filter.fdr
+This function is wrapped by get.conf() when filter_int_child = TRUE. It identifies the confounders from sig.asso.pcs that are
+correlated witht he genetic variant and removes them from the final list of confounders.
 }
