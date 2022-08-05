@@ -35,11 +35,11 @@ get.metrics=function(Truth=NULL, Inferred=NULL, reg.vec=NULL, get.adj.inf=FALSE,
 
   #get true positive edges
 
-  if(sum(Inf.adj)==0){
-    #handle the zero adj mat case of class "Other"
-    return(c(precision=NA, recall=0, specificity=1, FOR=0))
-
-  }else{
+  # if(sum(Inf.adj)==0){
+  #   #handle the zero adj mat case of class "Other"
+  #   return(c(precision=NA, recall=0, specificity=1, FOR=0))
+  #
+  # }else{
     #handle all other classes of adjacency
     #identify which entries are edges
     true.edges=which(Truth.adj==1)
@@ -71,6 +71,6 @@ get.metrics=function(Truth=NULL, Inferred=NULL, reg.vec=NULL, get.adj.inf=FALSE,
     FOR=FN/(FN+TN)
 
     return(c(precision=prec, recall=recall, specificity=specif, FOR=FOR))
-  }
+  #}
 
 }
