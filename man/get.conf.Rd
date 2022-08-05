@@ -2,16 +2,16 @@
 % Please edit documentation in R/get.conf.R
 \name{get.conf}
 \alias{get.conf}
-\title{A function to obtain confounders for trios using the PCs from the whole-genome expression or methylation data}
+\title{A function to select a set of confounding variables for each trio}
 \usage{
 get.conf(
   trios = NULL,
-  PCscores = NULL,
+  cov.pool = NULL,
   blocksize = 2000,
   apply.qval = TRUE,
   FDR = 0.1,
   filter_int_child = FALSE,
-  filter_thresh = 0.1,
+  filter_fdr = 0.1,
   lambda = NULL,
   alpha = 0.05,
   method = c("correlation, regression"),
@@ -26,7 +26,7 @@ get.conf(
 frame with samples in rows and trios in the columns. The assumed structure of each trio is that the Genetic variant
 is the first column followed by the two molecular phenotypes.}
 
-\item{PCscores}{a dataframe of the whole-genome PCA scores with observations in rows and PCs in columns}
+\item{cov.pool}{a dataframe of the whole-genome PCA scores with observations in rows and PCs in columns}
 
 \item{blocksize}{the number of columns to use in each block of correlation calculations passed to propagate::bigcor}
 
@@ -38,8 +38,8 @@ and the columns of \eqn{trios}. If \eqn{FALSE}, the Bonferroni correction is app
 \item{filter_int_child}{(logical) to determine if common child and intermediate confounding variables should be filtered out
 of the significant confounders. Note: only used when return.for.trios==TRUE. Default = FALSE}
 
-\item{filter_thresh}{a numeric giving the FDR threshold for either qvalue or Benjamin - Hochberg adjustment for common child
-and intermediate confounding variable filtering.}
+\item{filter_fdr}{a numeric giving the FDR threshold for either qvalue or Benjamin - Hochberg adjustment for common child
+and intermediate confounding variable filtering (only use when method = "regression").}
 
 \item{lambda}{he value of the tuning parameter to estimate \eqn{pi_0}. Must be between 0,1. If is.null(lambda) the default
 passed to \eqn{adjust.q()} is \eqn{seq(0.5, max(pvalues), 0.05)}}
@@ -65,29 +65,31 @@ a list of 4 elements containing:
 \item{sig.asso.pcs}{default: a list of length = The number of trios of the column indices of significant PCs detected for each trio
 Alternatively, if return.for.trios = FALSE, a list of length=ncol(trios) of the column indices of significant PCs detected
 for each column of trios}
-\item{pvalues}{a matrix of dimension \eqn{ncol(PCscores) X ncol(trios)} of the pvalues from the pearson correlation test on each set of correlations}
-\item{qvalues}{a matrix of dimension \eqn{ncol(PCscores) X ncol(trios)} of qvalues from each set of correlations}
-\item{cors}{the matrix of the calculated pairwise correlations of dimension \eqn{ncol(PCscores) X ncol(trios)}}
-\item{sig}{A matrix of logical values of dimension \eqn{ncol(PCscores) X ncol(trios)}}
-\item{adj.p}{A matrix of dimension \eqn{ncol(PCscores) X ncol(trios)} of the adjusted p-values if \eqn{apply.qval = FALSE}}
+\item{pvalues}{a matrix of dimension \eqn{ncol(cov.pool) X ncol(trios)} of the pvalues from the pearson correlation test on each set of correlations}
+\item{qvalues}{a matrix of dimension \eqn{ncol(cov.pool) X ncol(trios)} of qvalues from each set of correlations}
+\item{cors}{the matrix of the calculated pairwise correlations of dimension \eqn{ncol(cov.pool) X ncol(trios)}}
+\item{sig}{A matrix of logical values of dimension \eqn{ncol(cov.pool) X ncol(trios)}}
+\item{adj.p}{A matrix of dimension \eqn{ncol(cov.pool) X ncol(trios)} of the adjusted p-values if \eqn{apply.qval = FALSE}}
 }
 }
 \description{
-This function takes in a list of trios and the scores from the PCA on whole-genome level expression
-or methylation data and performs PC selection
+This function takes in a list of trios and and a matrix of potential confounding variables (e.g whole-genome expression or
+methylation PC scores) and selects the confounding variables associate with each trio using either a correlation-based
+or regression-based procedure. Additionally, this function allows the user to filter common child and intermediate confounding
+variables by remove selected confounders that are significantly associated with the genetic variant.
 }
 \examples{
 
 \dontrun{
 #fast example on 40 trios using qvalue correction and correlation method
 trio.conf=get.conf(trios=WBtrios[1:40],
-                   PCscores=WBscores,
+                   cov.pool=WBscores,
                    blocksize=10,
                    method = "correlation")
 
 #fast example on 40 trios using bonferroni correction and correlation method
 trio.conf2=get.conf(trios=WBtrios[1:40],
-                    PCscores=WBscores,
+                    cov.pool=WBscores,
                     blocksize=10,
                     apply.qval=FALSE,
                     method = "correlation")
@@ -95,7 +97,7 @@ trio.conf2=get.conf(trios=WBtrios[1:40],
 #fast example on 40 trios using the qvalue correction and the regression method
 #Note: this method is slower than method = "correlation"
 trio.conf3=get.conf(trios=WBtrios[1:40],
-                    PCscores=WBscores,
+                    cov.pool=WBscores,
                     blocksize=10,
                     apply.qval=TRUE,
                     method = "regression")

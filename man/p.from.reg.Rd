@@ -8,7 +8,7 @@ in \eqn{genes}}
 p.from.reg(pc, genes)
 }
 \arguments{
-\item{pc}{a vector of scores from a given pc (i.e a single column of \eqn{PCscores} in \eqn{get.conf()})}
+\item{pc}{a vector of scores from a given pc (i.e a single column of \eqn{cov.pool} in \eqn{get.conf()})}
 
 \item{genes}{an \eqn{n X m} dataframe of cis and trans gene pairs of trios}
 }

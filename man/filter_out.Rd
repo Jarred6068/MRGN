@@ -2,17 +2,17 @@
 % Please edit documentation in R/get.conf.R
 \name{filter_out}
 \alias{filter_out}
-\title{This function is wrapped by get.conf() when filter_int_child = TRUE. It identifies the confounders from sig.asso.pcs that are
-correlated witht he genetic variant and removes them from the final list of confounders.}
+\title{This function is wrapped by get.conf() when filter_int_child = TRUE and method = "regression". It identifies (from the selected)
+confounders in sig.asso.pcs which are correlated with the genetic variant and removes them from the final list of confounders.}
 \usage{
-filter_out(sig.asso.pcs, trios, PCscores, filter.fdr)
+filter_out(sig.asso.pcs, trios, cov.pool, filter.fdr)
 }
 \arguments{
 \item{sig.asso.pcs}{a matrix of correlations between the genetic variants the covariate pool of potential confounders}
 
 \item{trios}{see get.conf() for details}
 
-\item{PCscores}{see get.conf() for details}
+\item{cov.pool}{see get.conf() for details}
 
 \item{filter.fdr}{the filtering fdr threshold}
 }
@@ -21,6 +21,6 @@ a list of the significant associated PCs/confounders with the indices of the ide
 confounding variables removed.
 }
 \description{
-This function is wrapped by get.conf() when filter_int_child = TRUE. It identifies the confounders from sig.asso.pcs that are
-correlated witht he genetic variant and removes them from the final list of confounders.
+This function is wrapped by get.conf() when filter_int_child = TRUE and method = "regression". It identifies (from the selected)
+confounders in sig.asso.pcs which are correlated with the genetic variant and removes them from the final list of confounders.
 }
