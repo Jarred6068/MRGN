@@ -60,7 +60,7 @@ is returned (default = TRUE)}
 \item{save.path}{string specifying the path name of the output}
 }
 \value{
-a list of 4 elements containing:
+a list of 6 elements containing:
 \describe{
 \item{sig.asso.pcs}{default: a list of length = The number of trios of the column indices of significant PCs detected for each trio
 Alternatively, if return.for.trios = FALSE, a list of length=ncol(trios) of the column indices of significant PCs detected
@@ -74,9 +74,9 @@ for each column of trios}
 }
 \description{
 This function takes in a list of trios and and a matrix of potential confounding variables (e.g whole-genome expression or
-methylation PC scores) and selects the confounding variables associate with each trio using either a correlation-based
-or regression-based procedure. Additionally, this function allows the user to filter common child and intermediate confounding
-variables by remove selected confounders that are significantly associated with the genetic variant.
+methylation PC scores) and selects the confounding variables associated with each trio using either a correlation-based procedure of \insertCite{badsha2019learning}{MRGN}
+or regression-based procedure of \insertCite{yang2017identifying}{MRGN}. Additionally, this function allows the user to filter common child and intermediate confounding
+variables by removing selected confounders that are significantly associated with the genetic variant.
 }
 \examples{
 
@@ -101,5 +101,9 @@ trio.conf3=get.conf(trios=WBtrios[1:40],
                     blocksize=10,
                     apply.qval=TRUE,
                     method = "regression")
+}
+}
+\references{
+\preformatted{\\insertAllCited\{\}
 }
 }

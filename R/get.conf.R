@@ -2,9 +2,9 @@
 #' A function to select a set of confounding variables for each trio
 #'
 #' This function takes in a list of trios and and a matrix of potential confounding variables (e.g whole-genome expression or
-#' methylation PC scores) and selects the confounding variables associate with each trio using either a correlation-based
-#' or regression-based procedure. Additionally, this function allows the user to filter common child and intermediate confounding
-#' variables by remove selected confounders that are significantly associated with the genetic variant.
+#' methylation PC scores) and selects the confounding variables associated with each trio using either a correlation-based procedure of \insertCite{badsha2019learning}{MRGN}
+#' or regression-based procedure of \insertCite{yang2017identifying}{MRGN}. Additionally, this function allows the user to filter common child and intermediate confounding
+#' variables by removing selected confounders that are significantly associated with the genetic variant.
 #'
 #' @param trios either (1) a list where each element contains a dataframe corresponding to a trio or (2) a single data
 #' frame with samples in rows and trios in the columns. The assumed structure of each trio is that the Genetic variant
@@ -29,7 +29,7 @@
 #' @param return.list (logical) if TRUE the list of the column indices of significant PCs detected for each trio
 #' is returned (default = TRUE)
 #' @param save.path string specifying the path name of the output
-#' @return a list of 4 elements containing:
+#' @return a list of 6 elements containing:
 #'   \describe{
 #'   \item{sig.asso.pcs}{default: a list of length = The number of trios of the column indices of significant PCs detected for each trio
 #'   Alternatively, if return.for.trios = FALSE, a list of length=ncol(trios) of the column indices of significant PCs detected
@@ -41,6 +41,8 @@
 #'   \item{adj.p}{A matrix of dimension \eqn{ncol(cov.pool) X ncol(trios)} of the adjusted p-values if \eqn{apply.qval = FALSE}}
 #' }
 #' @export get.conf
+#' @references
+#'     \insertAllCited{}
 #' @import propagate
 #' @import qvalue
 #' @examples

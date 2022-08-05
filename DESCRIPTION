@@ -13,6 +13,7 @@ Depends:
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.2
 LazyData: true
+RdMacros: Rdpack
 Imports: 
     prodlim,
     igraph,
@@ -23,5 +24,6 @@ Imports:
     tmvtnorm,
     ff,
     propagate,
-    methods
+    methods,
+    Rdpack
     
