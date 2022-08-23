@@ -24,8 +24,10 @@ PermReg=function(trio=NULL, t.obs21=NULL, t.obs22=NULL, p11=NULL, p12=NULL, m=NU
 
   #preallocate all permutations
   #shuffle within each genotype
-  for (j in 0:2) {
-    ind <- which(trio[,1] == j)
+  ngeno <- length (table (trio[,1]))
+  geno <- unique (trio[,1])
+  for (j in 1:ngeno) {
+    ind <- which(trio[,1] == geno[j])
     if (length(ind) > 1) {
       mediator_perm1[ind, ] <- apply(mediator_perm1[ind, ], 2, sample)
       mediator_perm2[ind, ] <- apply(mediator_perm2[ind, ], 2, sample)

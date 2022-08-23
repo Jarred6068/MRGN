@@ -8,8 +8,9 @@ infer.trio(
   trio = NULL,
   use.perm = TRUE,
   gamma = 0.05,
+  is.CNA = FALSE,
   alpha = 0.01,
-  nperms = 10000,
+  nperms = 100,
   verbose = FALSE
 )
 }
@@ -22,6 +23,9 @@ test is ignored for all trios (default = TRUE)}
 
 \item{gamma}{The minor allele frequency threshold for which the permutation test should be used such that permutation is
 performed when minor allele freq < gamma (when use.perm = TRUE).}
+
+\item{is.CNA}{(logical) for use when use.perm=TRUE and the genetic variant is a copy number alteration so that the
+threshold gamma is ignored. default = FALSE}
 
 \item{alpha}{The rejection threshold for all wald tests (default = 0.01) which is approximately the bonferroni correction}
 

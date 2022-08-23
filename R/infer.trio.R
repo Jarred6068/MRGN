@@ -14,6 +14,8 @@
 #'                 test is ignored for all trios (default = TRUE)
 #' @param gamma The minor allele frequency threshold for which the permutation test should be used such that permutation is
 #'              performed when minor allele freq < gamma (when use.perm = TRUE).
+#' @param is.CNA (logical) for use when use.perm=TRUE and the genetic variant is a copy number alteration so that the
+#'               threshold gamma is ignored. default = FALSE
 #' @param alpha The rejection threshold for all wald tests (default = 0.01) which is approximately the bonferroni correction
 #' @param nperms The number of permutations to perform for trios with rare variants (default = 10,000)
 #' @param verbose (logical) if TRUE results of the regressions are printed
@@ -56,7 +58,7 @@
 ####################################################################
 #a wrapper function for get.freq(), Reg(), and PermReg() to infer the trio
 #combines the functions from sections 1.1-1.2
-infer.trio=function(trio=NULL, use.perm = TRUE, gamma=0.05, alpha=0.01, nperms=10000, verbose=FALSE){
+infer.trio=function(trio=NULL, use.perm = TRUE, gamma=0.05, is.CNA = FALSE, alpha=0.01, nperms=100, verbose=FALSE){
 
   #ensure trio is a dataframe for later functions:
   trio = as.data.frame(trio)
@@ -76,7 +78,7 @@ infer.trio=function(trio=NULL, use.perm = TRUE, gamma=0.05, alpha=0.01, nperms=1
   minor=get.freq(V=trio[,1])
 
   #step 2.1
-  if(use.perm == TRUE & minor<gamma){
+  if(use.perm == TRUE & (minor<gamma | is.CNA)){
     #preform permuted regression (section 1.2) for rare variants
     pvals=PermReg(trio = na.omit(trio),
                   t.obs21 = pt.out$tvals[2],

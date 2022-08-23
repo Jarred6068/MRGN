@@ -9,7 +9,7 @@ get.conf(
   cov.pool = NULL,
   blocksize = 2000,
   apply.qval = TRUE,
-  FDR = 0.1,
+  selection_fdr = 0.1,
   filter_int_child = FALSE,
   filter_fdr = 0.1,
   lambda = NULL,
@@ -33,13 +33,13 @@ is the first column followed by the two molecular phenotypes.}
 \item{apply.qval}{(logical) \eqn{default = TRUE} applies the qvalue adjustment to each set of correlations between a PC
 and the columns of \eqn{trios}. If \eqn{FALSE}, the Bonferroni correction is applied.}
 
-\item{FDR}{the false discovery rate (default = 0.10)}
+\item{selection_fdr}{the false discovery rate (default = 0.10) for selecting confounders}
 
 \item{filter_int_child}{(logical) to determine if common child and intermediate confounding variables should be filtered out
-of the significant confounders. Note: only used when return.for.trios==TRUE. Default = FALSE}
+(removed) from the significant confounders for each trio. Note: only used when return.for.trios==TRUE. Default = FALSE.}
 
-\item{filter_fdr}{a numeric giving the FDR threshold for either qvalue or Benjamin - Hochberg adjustment for common child
-and intermediate confounding variable filtering (only use when method = "regression").}
+\item{filter_fdr}{the false discovery rate for filtering common child
+and intermediate confounding variable (only used when method = "regression").}
 
 \item{lambda}{he value of the tuning parameter to estimate \eqn{pi_0}. Must be between 0,1. If is.null(lambda) the default
 passed to \eqn{adjust.q()} is \eqn{seq(0.5, max(pvalues), 0.05)}}
@@ -70,6 +70,7 @@ for each column of trios}
 \item{cors}{the matrix of the calculated pairwise correlations of dimension \eqn{ncol(cov.pool) X ncol(trios)}}
 \item{sig}{A matrix of logical values of dimension \eqn{ncol(cov.pool) X ncol(trios)}}
 \item{adj.p}{A matrix of dimension \eqn{ncol(cov.pool) X ncol(trios)} of the adjusted p-values if \eqn{apply.qval = FALSE}}
+\item{filtered_covs}{A list of length = the number of trios giving the filtered covariates if \eqn{filter_int_child = TRUE}}
 }
 }
 \description{
