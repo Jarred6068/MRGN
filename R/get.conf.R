@@ -72,7 +72,7 @@
 #'}
 
 
-get.conf=function(trios=NULL, cov.pool=NULL, blocksize=2000, apply.qval=TRUE, selection_fdr=0.10, filter_int_child = FALSE,
+get.conf=function(trios=NULL, cov.pool=NULL, blocksize=2000, apply.qval=TRUE, selection_fdr=0.05, filter_int_child = FALSE,
                   filter_fdr = 0.1, lambda=NULL, alpha=0.05, method = c("correlation, regression"), return.for.trios=TRUE,
                   save.list=FALSE, return.list=TRUE, save.path="/path/to/save/location"){
 

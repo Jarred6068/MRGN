@@ -9,7 +9,7 @@ get.conf(
   cov.pool = NULL,
   blocksize = 2000,
   apply.qval = TRUE,
-  selection_fdr = 0.1,
+  selection_fdr = 0.05,
   filter_int_child = FALSE,
   filter_fdr = 0.1,
   lambda = NULL,
