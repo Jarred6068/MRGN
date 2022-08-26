@@ -59,17 +59,20 @@ It returns a one dimensional dataframe containing the results of the coefficient
 inferred model structure
 }
 \examples{
-#inference on a single trio
+#inference on a single eQTL trio
 result=infer.trio(M1trio)
 print(result)
 
 \dontrun{
-#fast example on 10 trios from the built in dataset WBtrios
+#fast example on 10 eQTL trios from the built in dataset WBtrios
 #return just the summary stats
 stats = sapply(WBtrios[1:10], function(x) infer.trio(x)$Stats)
 print(stats)
 #return just the inferred model topology
 models = sapply(WBtrios[1:10], function(x) infer.trio(x)$Inferred.Model)
+print(models)
+#fast example on 10 CNA trios from the build in dataset CNAtrios
+models = sapply(CNAtrios[1:10], function(x) infer.trio(x)$Inferred.Model)
 print(models)
 }
 }
