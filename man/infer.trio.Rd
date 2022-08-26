@@ -71,8 +71,8 @@ print(stats)
 #return just the inferred model topology
 models = sapply(WBtrios[1:10], function(x) infer.trio(x)$Inferred.Model)
 print(models)
-#fast example on 10 CNA trios from the build in dataset CNAtrios
-models = sapply(CNAtrios[1:10], function(x) infer.trio(x)$Inferred.Model)
+#fast example on 10 CNA trios from the built in dataset CNAtrios using permutation
+models = sapply(CNAtrios[1:10], function(x) infer.trio(x, is.CNA = T)$Inferred.Model)
 print(models)
 }
 }
