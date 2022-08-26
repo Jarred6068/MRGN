@@ -33,7 +33,7 @@ is the first column followed by the two molecular phenotypes.}
 \item{apply.qval}{(logical) \eqn{default = TRUE} applies the qvalue adjustment to each set of correlations between a PC
 and the columns of \eqn{trios}. If \eqn{FALSE}, the Bonferroni correction is applied.}
 
-\item{selection_fdr}{the false discovery rate (default = 0.10) for selecting confounders}
+\item{selection_fdr}{the false discovery rate (default = 0.05) for selecting confounders}
 
 \item{filter_int_child}{(logical) to determine if common child and intermediate confounding variables should be filtered out
 (removed) from the significant confounders for each trio. Note: only used when return.for.trios==TRUE. Default = FALSE.}
@@ -41,7 +41,7 @@ and the columns of \eqn{trios}. If \eqn{FALSE}, the Bonferroni correction is app
 \item{filter_fdr}{the false discovery rate for filtering common child
 and intermediate confounding variable (only used when method = "regression").}
 
-\item{lambda}{he value of the tuning parameter to estimate \eqn{pi_0}. Must be between 0,1. If is.null(lambda) the default
+\item{lambda}{the cut off points of the tuning parameter to estimate \eqn{pi_0}. Must be between 0,1. If is.null(lambda) the default
 passed to \eqn{adjust.q()} is \eqn{seq(0.5, max(pvalues), 0.05)}}
 
 \item{alpha}{the test threshold for the bonferroni correacted pvalues when \eqn{apply.qval = FALSE}}
