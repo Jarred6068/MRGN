@@ -43,8 +43,8 @@ class.vec=function(vec=NULL){
 
     #if only one of the marginals is sig we determine
     #which direction and allocate to M2.1 or M2.2
-    if(sum(zp==c(0,1))==2){return(mt="M2.1")}
-    if(sum(zp==c(1,0))==2){return(mt="M2.2")}
+    if(sum(zp==c(0,1))==2){return(mt="M2.2")}
+    if(sum(zp==c(1,0))==2){return(mt="M2.1")}
 
     #if not M2/M4 and matched to gt, return model class
   }else{

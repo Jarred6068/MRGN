@@ -3,10 +3,10 @@
 #' this function wraps PermReg.helper.fn() to preform the permuted regression. Not intended for direct use
 #'
 #' @param trio A dataframe with at least 3 columns and the first column containing the genetic variant
-#' @param t.obs21 the t-statistic from Reg() represnting the test on beta21
-#' @param t.obs22 the t-statistic from Reg() representing the test on beta22
-#' @param p11 the p-value from the test on beta21
-#' @param p12 the p-value from the test on beta22
+#' @param t.obs12 the t-statistic from Reg() represnting the test on beta_12: T1 ~ T2 | V, U
+#' @param t.obs22 the t-statistic from Reg() representing the test on beta_22: T2 ~ T1 | V, U
+#' @param p11 the p-value from the test on beta_11: V ~ T1 | T2, U
+#' @param p21 the p-value from the test on beta_21: V ~ T2 | T1, U
 #' @param m the number of permutations to perform
 #' PermReg()
 
@@ -14,7 +14,7 @@
 ####################################################################
 #this function uses PermReg.helper.fn() to preform the permuted regression
 #analysis for rare variants - section 1.2
-PermReg=function(trio=NULL, t.obs21=NULL, t.obs22=NULL, p11=NULL, p12=NULL, m=NULL){
+PermReg=function(trio=NULL, t.obs12=NULL, t.obs22=NULL, p11=NULL, p21=NULL, m=NULL){
 
   #preallocate a matrix of indicies ranging from 1:sample size
   #we will shuffle these numbers later to get the permutations within genotype
@@ -42,7 +42,7 @@ PermReg=function(trio=NULL, t.obs21=NULL, t.obs22=NULL, p11=NULL, p12=NULL, m=NU
   }
   #preforms all permutations of eqn (3) in parallel
   #outputs Theta21
-  Theta21=apply(mediator_perm1, 2, PermReg.help.fn,
+  Theta12=apply(mediator_perm1, 2, PermReg.help.fn,
                 V=trio[,1],
                 T1=trio[,2],
                 T2=trio[,3],
@@ -61,11 +61,11 @@ PermReg=function(trio=NULL, t.obs21=NULL, t.obs22=NULL, p11=NULL, p12=NULL, m=NU
 
   #Step 2.1 - calculating the nominal p-values using Theta21 and Theta22
 
-  nominal.p21=2 * (stats::pnorm(abs((t.obs21 - mean(Theta21))/stats::sd(Theta21)), lower.tail = F))
+  nominal.p12=2 * (stats::pnorm(abs((t.obs12 - mean(Theta12))/stats::sd(Theta12)), lower.tail = F))
   nominal.p22=2 * (stats::pnorm(abs((t.obs22 - mean(Theta22))/stats::sd(Theta22)), lower.tail = F))
 
   #concat pvalues
-  pvals=c(p11, nominal.p21, p12, nominal.p22)
+  pvals=c(p11, nominal.p12, p21, nominal.p22)
   #return pvalue vector
   return(pvals)
 }

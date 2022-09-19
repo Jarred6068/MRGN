@@ -29,8 +29,8 @@ Reg=function(data=NULL, verbose=FALSE){
   }
 
   #name them according to coefficient index
-  names(pvals)=c("p11","p21","p12","p22")
-  names(tvals)=c("tobs11","tobs21","tobs12","tobs22")
+  names(pvals)=c("p11","p12","p21","p22")
+  names(tvals)=c("tobs11","tobs12","tobs21","tobs22")
 
   #output pvalues and t-stats for b11,b21,b12,b22
   return(pt.list=list(pvals=pvals,tvals=tvals))

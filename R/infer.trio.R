@@ -26,9 +26,8 @@
 #'
 #' \dontrun{
 #' #fast example on 10 eQTL trios from the built in dataset WBtrios
-#' #return just the summary stats
-#' stats = sapply(WBtrios[1:10], function(x) infer.trio(x)$Stats)
-#' print(stats)
+#' results = sapply(WBtrios[1:10], function(x) infer.trio(x))
+#' print(results)
 #' #return just the inferred model topology
 #' models = sapply(WBtrios[1:10], function(x) infer.trio(x)$Inferred.Model)
 #' print(models)
@@ -39,17 +38,17 @@
 #' @return a dataframe of dimension 1 x 14 with the following columns:
 #'   \describe{
 #'   \item{b11}{the indicator [0,1] value for the conditional test T1 ~ V | T2,U}
-#'   \item{b21}{the indicator [0,1] value for the conditional test T1 ~ T2 | V,U}
-#'   \item{b12}{the indicator [0,1] value for the conditional test T2 ~ V | T1,U}
+#'   \item{b12}{the indicator [0,1] value for the conditional test T1 ~ T2 | V,U}
+#'   \item{b21}{the indicator [0,1] value for the conditional test T2 ~ V | T1,U}
 #'   \item{b22}{the indicator [0,1] value for the conditional test T2 ~ T1 | V,U}
-#'   \item{V1:T2}{the indicator [0,1] value for the marginal test between V1 and T2}
 #'   \item{V1:T1}{the indicator [0,1] value for the marginal test between V1 and T1}
+#'   \item{V1:T2}{the indicator [0,1] value for the marginal test between V1 and T2}
 #'   \item{pb11}{the p-value for the conditional test T1 ~ V | T2,U}
-#'   \item{pb21}{the p-value for the conditional test T1 ~ T2 | V,U}
-#'   \item{pb12}{the p-value for the conditional test T2 ~ V | T1,U}
+#'   \item{pb12}{the p-value for the conditional test T1 ~ T2 | V,U}
+#'   \item{pb21}{the p-value for the conditional test T2 ~ V | T1,U}
 #'   \item{pb22}{the p-value for the conditional test T2 ~ T1 | V,U}
-#'   \item{pV1:T2}{the p-value for the marginal test between V1 and T2}
 #'   \item{pV1:T1}{the p-value for the marginal test between V1 and T1}
+#'   \item{pV1:T2}{the p-value for the marginal test between V1 and T2}
 #'   \item{Minor.freq}{the calculated frequency of the minor allele of the genetic variant}
 #'   \item{Inferred.Model}{a string indicating the inferred model type as returned by \eqn{class.vec()}}
 #'   }
@@ -84,10 +83,10 @@ infer.trio=function(trio=NULL, use.perm = TRUE, gamma=0.05, is.CNA = FALSE, alph
   if(use.perm == TRUE & (minor<gamma | is.CNA)){
     #preform permuted regression (section 1.2) for rare variants
     pvals=PermReg(trio = na.omit(trio),
-                  t.obs21 = pt.out$tvals[2],
+                  t.obs12 = pt.out$tvals[2],
                   t.obs22 = pt.out$tvals[4],
                   p11 = pt.out$pvals[1],
-                  p12 = pt.out$pvals[3],
+                  p21 = pt.out$pvals[3],
                   m = nperms)
 
   }else{
@@ -102,15 +101,15 @@ infer.trio=function(trio=NULL, use.perm = TRUE, gamma=0.05, is.CNA = FALSE, alph
   xp=ifelse(pvals<alpha, 1, 0)
 
   #preform marginal tests
-  cors=c(stats::cor.test(trio[,1], trio[,3],use="pairwise.complete.obs")$p.value,
-         stats::cor.test(trio[,1], trio[,2],use="pairwise.complete.obs")$p.value)
+  cors=c(stats::cor.test(trio[,1], trio[,2],use="pairwise.complete.obs")$p.value,
+         stats::cor.test(trio[,1], trio[,3],use="pairwise.complete.obs")$p.value)
   #convert to indicator vector
   rp=ifelse(cors<alpha, 1, 0)
   #combine all useful stats - add indicator
   all.stats=c(append(xp, rp), append(pvals, cors), minor)
 
-  names(all.stats)=c("b11","b21", "b12","b22", "V1:T2", "V1:T1", "pb11",
-                     "pb21", "pb12","pb22","pV1:T2","pV1:T1", "Minor.freq")
+  names(all.stats)=c("b11","b12", "b21","b22", "V1:T1", "V1:T2", "pb11",
+                     "pb12", "pb21","pb22","pV1:T1","pV1:T2", "Minor.freq")
   all.stats = as.data.frame(t(all.stats))
   all.stats$Inferred.Model = MRGN::class.vec(all.stats)
 

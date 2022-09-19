@@ -74,12 +74,13 @@ adj = gen.graph.skel(model = "model1",
                      b.med=0.6,
                      conf.num.vec = c(K = 1, U = 1, W = 1, Z = 1))
 
-# generate a custom graph with 2 variants and 4 molecular phenotypes
+# generate a custom/random directed graph with 2 variants and 4 molecular phenotypes
+# and one of each type of confounding variable
 \dontrun{
 X=gen.graph.skel(model = "custom",
                  b.snp = c(0.5,0.6,0.7),
                  b.med = c(0.2,0.1,0.6),
-                 conf.num.vec = c(K = 1, U = 1, W = 3, Z = 1),
+                 conf.num.vec = c(K = 1, U = 1, W = 1, Z = 1),
                  number.of.T = 4,
                  number.of.V = 2,
                  struct = "random",

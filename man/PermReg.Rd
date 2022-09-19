@@ -6,23 +6,23 @@
 \usage{
 PermReg(
   trio = NULL,
-  t.obs21 = NULL,
+  t.obs12 = NULL,
   t.obs22 = NULL,
   p11 = NULL,
-  p12 = NULL,
+  p21 = NULL,
   m = NULL
 )
 }
 \arguments{
 \item{trio}{A dataframe with at least 3 columns and the first column containing the genetic variant}
 
-\item{t.obs21}{the t-statistic from Reg() represnting the test on beta21}
+\item{t.obs12}{the t-statistic from Reg() represnting the test on beta_12: T1 ~ T2 | V, U}
 
-\item{t.obs22}{the t-statistic from Reg() representing the test on beta22}
+\item{t.obs22}{the t-statistic from Reg() representing the test on beta_22: T2 ~ T1 | V, U}
 
-\item{p11}{the p-value from the test on beta21}
+\item{p11}{the p-value from the test on beta_11: V ~ T1 | T2, U}
 
-\item{p12}{the p-value from the test on beta22}
+\item{p21}{the p-value from the test on beta_21: V ~ T2 | T1, U}
 
 \item{m}{the number of permutations to perform
 PermReg()}

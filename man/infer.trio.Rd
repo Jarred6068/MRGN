@@ -37,17 +37,17 @@ threshold gamma is ignored. default = FALSE}
 a dataframe of dimension 1 x 14 with the following columns:
 \describe{
 \item{b11}{the indicator \link{0,1} value for the conditional test T1 ~ V | T2,U}
-\item{b21}{the indicator \link{0,1} value for the conditional test T1 ~ T2 | V,U}
-\item{b12}{the indicator \link{0,1} value for the conditional test T2 ~ V | T1,U}
+\item{b12}{the indicator \link{0,1} value for the conditional test T1 ~ T2 | V,U}
+\item{b21}{the indicator \link{0,1} value for the conditional test T2 ~ V | T1,U}
 \item{b22}{the indicator \link{0,1} value for the conditional test T2 ~ T1 | V,U}
-\item{V1:T2}{the indicator \link{0,1} value for the marginal test between V1 and T2}
 \item{V1:T1}{the indicator \link{0,1} value for the marginal test between V1 and T1}
+\item{V1:T2}{the indicator \link{0,1} value for the marginal test between V1 and T2}
 \item{pb11}{the p-value for the conditional test T1 ~ V | T2,U}
-\item{pb21}{the p-value for the conditional test T1 ~ T2 | V,U}
-\item{pb12}{the p-value for the conditional test T2 ~ V | T1,U}
+\item{pb12}{the p-value for the conditional test T1 ~ T2 | V,U}
+\item{pb21}{the p-value for the conditional test T2 ~ V | T1,U}
 \item{pb22}{the p-value for the conditional test T2 ~ T1 | V,U}
-\item{pV1:T2}{the p-value for the marginal test between V1 and T2}
 \item{pV1:T1}{the p-value for the marginal test between V1 and T1}
+\item{pV1:T2}{the p-value for the marginal test between V1 and T2}
 \item{Minor.freq}{the calculated frequency of the minor allele of the genetic variant}
 \item{Inferred.Model}{a string indicating the inferred model type as returned by \eqn{class.vec()}}
 }
@@ -65,9 +65,8 @@ print(result)
 
 \dontrun{
 #fast example on 10 eQTL trios from the built in dataset WBtrios
-#return just the summary stats
-stats = sapply(WBtrios[1:10], function(x) infer.trio(x)$Stats)
-print(stats)
+results = sapply(WBtrios[1:10], function(x) infer.trio(x))
+print(results)
 #return just the inferred model topology
 models = sapply(WBtrios[1:10], function(x) infer.trio(x)$Inferred.Model)
 print(models)
