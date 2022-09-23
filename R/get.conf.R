@@ -284,7 +284,6 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
 
 
 
-
   }, correlation = {
     #correlation method - filtering and selection of covs
     result.list = correlation.method(pvalue.matrix = cor.p.mat,
@@ -295,83 +294,15 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
 
 
 
-
     #stop message for missing "method"
   }, stop("Method not included or missing"))
 
-  #=================================organize-output====================================
-  if(return.for.trios==TRUE){
-    #returns list for each trio
-
-    switch(method, regression = {
-      #naming
-      colnames(sig.mat)=colnames(q.mat)=colnames(r.mat)=colnames(p.mat)=colnames(p.adj.mat)=paste0("PC",1:dim(cov.pool)[2])
-      colnames(sig.mat.filt)=colnames(p.mat.filt)=paste0("PC",1:dim(cov.pool)[2])
-      row.names(sig.mat)=row.names(q.mat)=row.names(p.mat)=row.names(p.adj.mat)=paste0("trio", 1:(dim(triomat)[2]/3))
-      row.names(sig.mat.filt)=row.names(p.mat.filt)=row.names(r.mat)=colnames(triomat)
-      #common child and intermediate variable filtering
-      if(filter_int_child == TRUE){
-
-        message("For method: \"regression\" - filtering common child and intermediate variables...")
-        #identify which selected covs were also marginally significant with the genetic variant (after fdr adj.)
-
-      }else{
-        filtered = NULL
-        final.list.sig.asso.pcs = sig.asso.pcs
-      }
-    }, correlation = {
-      #naming
-      colnames(sig.mat)=colnames(q.mat)=colnames(r.mat)=colnames(p.mat)=colnames(p.adj.mat)=paste0("PC",1:dim(cov.pool)[2])
-      row.names(sig.mat)=row.names(q.mat)=row.names(r.mat)=row.names(p.mat)=row.names(p.adj.mat)=make.unique(colnames(triomat))
-
-      #get indicies of each trio in triomat
-      trio.indices=cbind( start.col = seq(1,dim(triomat)[2],3),
-                          end.col = seq(3,dim(triomat)[2],3))
-
-      #common child and intermediate variable filtering
-      if(filter_int_child == TRUE){
-        #indices for only the molecular phenotypes (exclude all hits with V)
-        message("Filtering common child and intermeidate variables for method = \"correlation\" ")
 
 
-      }else{
-
-      }
-    })
-
-    if(return.list==TRUE){
-      out.list = list(sig.asso.pcs=final.list.sig.asso.pcs,
-                      pvalues=t(p.mat),
-                      qvalues=t(q.mat),
-                      cors = t(r.mat),
-                      sig = t(sig.mat),
-                      adj.p = t(p.adj.mat),
-                      filtered_covs = filtered)
-      return(out.list)
-    }
-    if(save.list==TRUE){
-      save(out.list, file = paste0(save.path,".RData"))
-    }
-
-
-
-  }else{
-    #returns list for each column in trios
-
-    if(return.list==TRUE){
-      out.list=list(sig.asso.pcs = sig.asso.pcs,
-                    pvalues = t(p.mat),
-                    qvalues = t(q.mat),
-                    cors = t(r.mat),
-                    sig = t(sig.mat),
-                    adj.p = t(p.adj.mat))
-      return(out.list)
-    }
-
-    if(save.list==TRUE){
-      save(out.list, file = paste0(save.path,".RData"))
-    }
+  if(save.list==TRUE){
+    save(result.list, file = paste0(save.path,".RData"))
   }
+
 }
 
 
@@ -380,7 +311,7 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
 
 
 
-#' A wrapper function to apply the qvalue correction to a set of pvalues
+#' A simple function to apply the qvalue correction to a set of pvalues
 #'
 #' @param p a vector of p.values to be passed to qvalue::qvalue()
 #' @param fdr the false discovery rate
@@ -402,6 +333,42 @@ adjust.q=function(p, fdr, lambda){
   qval=qval.str$qvalues
   return(cbind.data.frame(significant=sig, qvalue=qval))
 }
+
+
+
+#' A simple function to apply the qvalue correction to a set of pvalues specifically from filtered regression
+#'
+#' @param x a two element list with the first element being a set of pvalues and the second element being
+#' a set of indicies for pvalues to omit
+#' @param fdr the false discovery rate
+#' @param lambda The value of the tuning parameter to estimate \eqn{pi_0}. Must be in \eqn{[0,1)}
+#' @return an \eqn{n X 2} dataframe containing the qvalues, and significance (logical)
+#' @export adjust.q.reg
+
+
+
+adjust.q.reg=function(x, fdr, lambda, num.of.trios){
+  sig.vec = rep(NA, num.of.trios)
+  q.vec = rep(NA, num.of.trios)
+  #apply qvalue correction
+  if(is.null(lambda)){
+    lambda=seq(0.05, max(x[[1]], na.rm = T), 0.05)
+  }
+
+  if(length(x[[2]]) == 0){
+    qval.str=qvalue::qvalue(x[[1]], fdr.level = fdr, lambda = lambda)
+    sig.vec = qval.str$significant
+    q.vec=qval.str$qvalues
+  }else{
+    qval.str=qvalue::qvalue(x[[1]][-x[[2]]], fdr.level = fdr, lambda = lambda)
+    sig.vec[-x[[2]]] = qval.str$significant
+    q.vec[-x[[2]]]=qval.str$qvalues
+  }
+  #extract significance and qvalues and return
+
+  return(cbind.data.frame(significant=sig.vec, qvalue=q.vec))
+}
+
 
 
 #' A function to calculate the pearson correlation p-values
@@ -449,63 +416,111 @@ p.from.reg=function(pc, genes){
 
 
 
+#' this function wraps adjust.q and adjust.q reg
+#'
+#' @param pvalues a matrix of pvalues or a list of 2-list containing the pvalues and indicies for which pvalues to exlude
+#' (i.e from filtering)
+#' @param fdr.level the false discovery rate passed to adjust.q or adjust.q.reg
+#' @param lambda The value of the tuning parameter to estimate \eqn{pi_0}. Must be in \eqn{[0,1]} passed to adjust.q or adjust.q.reg
+#' @return of input.type = list, then the output is a list of 2-lists containing the q values and sigificance. Else if the
+#' input.type == array, then the output is a 2-list where the first element is a matrix of qvalues and the second element is
+#' a matrix of significance determinations
+#' @export get.q.sig
 
+get.q.sig = function(pvalues, fdr.level, lambda.seq, num.of.trios, input.type = "array"){
 
-get.q.sig = function(cor.pvalues, fdr.level, lambda.seq){
+  if(input.type == "array"){
+    #if the input is an array of pvalues
+    adjust.out = apply(pvalues, 2, adjust.q, fdr = fdr.level, lambda = lambda.seq)
 
-
-  adjust.out = apply(cor.pvalues, 2, adjust.q, fdr = fdr.level, lambda = lambda.seq)
+  }else{
+    #if the input is a list --- only for filtering with regression method
+    adjust.out = lapply(pvalues, adjust.q.reg, fdr = fdr.level, lambda = lambda.seq,
+                        num.of.trios = num.of.trios)
+  }
+  #extract the qvalue and significance matrix
   cor.sig.mat = sapply(adjust.out, function(x) x$significant)
   cor.q.mat = sapply(adjust.out, function(x) x$qvalue)
-
   return(list(sigmat = cor.sig.mat, qmat = cor.q.mat))
-
 }
 
 
+#' this function exexutes and performs covariate selection and filtering for the regression method
+#'
+#' @param pvalues a matrix of pvalues or a list of 2-list containing the pvalues and indicies for which pvalues to exlude
+#' (i.e from filtering)
+#' @param fdr.level the false discovery rate passed to adjust.q or adjust.q.reg
+#' @param lambda The value of the tuning parameter to estimate \eqn{pi_0}. Must be in \eqn{[0,1]} passed to adjust.q or adjust.q.reg
+#' @return a list
+#' @export regression.method
 
-
-regression.method = function(covpool, trio.mat, pvalue.matrix, filtering, filter.fdr, selection.fdr, lam.seq, triolist){
+regression.method = function(covpool, trio.mat, cor.pvalue.matrix, filtering, filter.fdr,
+                             selection.fdr, lam.seq, triolist){
   #METHOD = Regression
+  #pvalues from regressions on each cov
+  pc.list=as.list(as.data.frame(covpool))
+  #extract only genes
+  genes=trio.mat[,-seq(1,dim(trio.mat)[2], 3)]
+  message("Applying: method = \"regression\" on confounding variables, this step may take some time...")
+  #regress each PC on each pair of genes i.e PC ~ gene1 + gene2
+  p.mat=as.data.frame(sapply(pc.list, p.from.reg, genes = genes))
+
   #---------------filtering------------------
   if(filtering == TRUE){
     #if filtering, then filter the covariate pool for each trio
     message("For method: \"regression\" - filtering common child and intermediate variables from cov.pool")
+    #get the indices for the variants
+    idx = seq(1, dim(trio.mat)[2]-2, 3)
     #get filtering qvalues and significance matrices, using filtering fdr
-    out = get.q.sig(cor.pvalues = pvalue.matrix, fdr.level = filter.fdr, lambda.seq = lam.seq)
+    out = get.q.sig(pvalues = cor.pvalue.matrix[idx,], fdr.level = filter.fdr, lambda.seq = lam.seq)
     #get the indices of covs significant with the variant
-    variant.sig = apply(out$sigmat[seq(1, dim(triomat)[2]-2, 3), ], 1, which)
-    # #subset the covlist by the covs significant with the snp
-    # #we bind in the trios for each filtered cov pool so it is easier to handle by p.from.reg
-    # sub.cov.pool.list = lapply(variant.sig, function(x,y) y[,-x], y = cov.pool)
-    # #merge list of cov pools with list of trios
+    variant.sig = apply(out$sigmat, 2, which)
+    p.as.list = as.list(p.mat)
+
+    #combine the vector of pvalues for a pc with all gene pairs with the indicators for which
+    #pvalues should be omitted in the adjustment (from variant.sig) into an iterable list
+    iterate.list = lapply(as.list(1:dim(covpool)[2]), function(x,y,z) list(y[[x]],z[[x]]),
+                         y = p.as.list, z = variant.sig)
+
+    out.final = get.q.sig(pvalues = iterate.list, fdr.level = selection.fdr,
+                          lambda.seq = lam.seq, num.of.trios = length(idx), input.type = 'list')
+
+
   }else{
-    # #if no filtering:
-    # #create an empty list of length = number of trios
-    # #add the entire cov.pool to each element in the list
-    # v = vector("list", num.trios)
-    # sub.cov.pool.list = lapply(v, function(x) cov.pool)
+    out = list(sigmat = NULL, qmat = NULL)
+    out.final = get.q.sig(pvalues = p.mat, fdr.level = selection.fdr, lambda.seq = lam.seq)
+
   }
+
   #---------------------selection-of-covs---------------------
-  pc.list=as.list(as.data.frame(cov.pool))
-  #extract only genes
-  genes=triomat[,-seq(1,dim(triomat)[2], 3)]
-  message("Applying: method = \"regression\" on confounding variables, this step may take some time...")
-  #regress each PC on each pair of genes i.e PC ~ gene1 + gene2
-  p.mat=sapply(pc.list, p.from.reg, genes = genes)
 
+  final.list.sig.asso.covs = apply(out.final$sigmat, 1, function(x){which(x)})
+  filtered = apply(out.final$sigmat, 1, function(x){which(is.na(x))})
 
-  #merge list of cov pools with list of trios
-  cov.pool.plus.trios = mapply(cbind, triolist, sub.cov.pool.list)
+  return(list(final.list.covs = final.list.sig.asso.covs, filtered.covs = filtered,
+              reg.pvalues = p.mat, q.values = out$qmat, sig.mat = out$sigmat,
+              filt.qvalues = out$qmat))
+
 }
 
 
+
+
+
+#' this function exexutes and performs covariate selection and filtering for the correlation method
+#'
+#' @param pvalues a matrix of pvalues or a list of 2-list containing the pvalues and indicies for which pvalues to exlude
+#' (i.e from filtering)
+#' @param fdr.level the false discovery rate passed to adjust.q or adjust.q.reg
+#' @param lambda The value of the tuning parameter to estimate \eqn{pi_0}. Must be in \eqn{[0,1]} passed to adjust.q or adjust.q.reg
+#' @return a list
+#' @export correlation.method
 
 correlation.method = function(pvalue.matrix, filtering, selection.fdr, lam.seq, trio.idx){
 
   #METHOD = Correlation
   #get the qvalues and significance matrix at selection_fdr
-  out = get.q.sig(cor.pvalues = pvalue.matrix, fdr.level = selection.fdr, lambda.seq = lam.seq)
+  out = get.q.sig(pvalues = pvalue.matrix, fdr.level = selection.fdr, lambda.seq = lam.seq)
   #get the significant covariates for every column of triomat
   sig.asso.covs=apply(out$sigmat, 1, function(x){which(x)})
 
@@ -542,7 +557,8 @@ correlation.method = function(pvalue.matrix, filtering, selection.fdr, lam.seq, 
                                   function(x,y){ unique(unlist(y[x[1]:x[2]])) },
                                   y=sig.asso.covs)
 
-    return(list(final.list.covs = final.list.sig.asso.covs, filtered.covs = filtered))
+    return(list(final.list.covs = final.list.sig.asso.covs, filtered.covs = filtered,
+                q.values = out$qmat, sig.mat = out$sigmat))
 
   }
 }
