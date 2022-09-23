@@ -37,10 +37,28 @@
 #'
 #' \dontrun{
 #' #fast example
-#' trio.conf=get.conf(trios=WBtrios[1:40],
-#'                    cov.pool=WBscores,
-#'                    blocksize=10,
-#'                    method = "correlation")
+#' trio.conf=get.conf.matrix(data=do.call('cbind',WBtrios[1:40]),
+#'                           cov.pool=WBscores,
+#'                           blocksize=10)
+#'
+#' # example with manual filtering
+#'
+#' triomat = do.call('cbind', WBtrios[1:40])
+#' snp.idx = seq(1, dim(triomat)[2]-2, 3)
+#' snps = triomat[,snp.idx]
+#' genes = triomat[,-snp.idx]
+#'
+#' gene.confs=get.conf.matrix(data=genes,
+#'                           cov.pool=WBscores,
+#'                           blocksize=10)
+#'
+#' snp.confs=get.conf.matrix(data=snps,
+#'                           cov.pool=WBscores,
+#'                           blocksize=10)
+#'
+#'
+#'
+#'
 #'
 #'}
 
@@ -105,9 +123,7 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, blocksize=2000, apply.qval=TR
 
   #=================================Organize and return/save output====================================
   colnames(sig.mat)=colnames(q.mat)=colnames(r.mat)=colnames(p.mat)=colnames(p.adj.mat)=cn.cov.pool
-  colnames(sig.mat.filt)=colnames(p.mat.filt)=cn.cov.pool
   row.names(sig.mat)=row.names(q.mat)=row.names(p.mat)=row.names(p.adj.mat)=cn.data
-  row.names(sig.mat.filt)=row.names(p.mat.filt)=row.names(r.mat)=cn.data
 
 
 
@@ -177,25 +193,24 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, blocksize=2000, apply.qval=TR
 #'
 #' \dontrun{
 #' #fast example on 40 trios using qvalue correction and correlation method
-#' trio.conf=get.conf(trios=WBtrios[1:40],
-#'                    cov.pool=WBscores,
-#'                    blocksize=10,
-#'                    method = "correlation")
+#' trio.conf=get.conf.trios(trios=WBtrios[1:40],
+#'                          cov.pool=WBscores,
+#'                          blocksize=10,
+#'                          method = "correlation")
 #'
 #' #fast example on 40 trios using bonferroni correction and correlation method
-#' trio.conf2=get.conf(trios=WBtrios[1:40],
-#'                     cov.pool=WBscores,
-#'                     blocksize=10,
-#'                     apply.qval=FALSE,
-#'                     method = "correlation")
+#' trio.conf2=get.conf.trios(trios=WBtrios[1:40],
+#'                           cov.pool=WBscores,
+#'                           blocksize=10,
+#'                           method = "regression")
 #'
 #' #fast example on 40 trios using the qvalue correction and the regression method
 #' #Note: this method is slower than method = "correlation"
-#' trio.conf3=get.conf(trios=WBtrios[1:40],
-#'                     cov.pool=WBscores,
-#'                     blocksize=10,
-#'                     apply.qval=TRUE,
-#'                     method = "regression")
+#' trio.conf3=get.conf.trio(trios=WBtrios[1:40],
+#'                          cov.pool=WBscores,
+#'                          blocksize=10,
+#'                          filter_int_child = T,
+#'                          method = "regression")
 #'}
 
 
@@ -233,6 +248,10 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
   #get a list of trio indices for later use
   trio.indices=cbind( start.col = seq(1,dim(triomat)[2],3),
                       end.col = seq(3,dim(triomat)[2],3))
+
+  snp.idx = seq(1, dim(triomat)[2]-2, 3)
+
+  trn = paste0("trio_", c(1:num.trios))
 
   print(paste0("detected ", num.trios, " trios and ", dim(cov.pool)[2], " covariates in the candidate pool..."))
 
@@ -282,7 +301,12 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
                                     lam.seq = lambda,
                                     triolist = trio.list)
 
-
+    #naming
+    names(result.list$final.list.covs) = names(result.list$filtered.covs) = trn
+    colnames(result.list$reg.pvalues) = colnames(result.list$cor.pvalues) = colnames(result.list$q.values) = colnames(result.list$sig.mat) = cn.cov.pool
+    row.names(result.list$cor.pvalues) = row.names(result.list$q.values) = row.anmes(result.list$sig.mat) = c(1:num.trios)
+    row.names(result.list$reg.pvalues) = trn
+    names(filt.qvalues) = trn
 
   }, correlation = {
     #correlation method - filtering and selection of covs
@@ -291,7 +315,10 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
                                      selection.fdr = selection_fdr,
                                      lam.seq = lambda,
                                      trio.idx = trio.indices)
-
+    #naming
+    names(result.list$final.list.covs) = names(result.list$filtered.covs) = trn
+    colnames(result.list$p.values) = colnames(result.list$q.values) = colnames(result.list$sig.mat) = cn.cov.pool
+    row.names(result.list$p.values) = row.names(result.list$q.values) = row.names(result.list$sig.mat) = trn
 
 
     #stop message for missing "method"
@@ -302,6 +329,9 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
   if(save.list==TRUE){
     save(result.list, file = paste0(save.path,".RData"))
   }
+
+
+  return(result.list)
 
 }
 
@@ -348,19 +378,26 @@ adjust.q=function(p, fdr, lambda){
 
 
 adjust.q.reg=function(x, fdr, lambda, num.of.trios){
+  #preallocate significance and qvalue as vectors of NAs
   sig.vec = rep(NA, num.of.trios)
   q.vec = rep(NA, num.of.trios)
   #apply qvalue correction
   if(is.null(lambda)){
+    #if cutoff values not supplied set them as:
     lambda=seq(0.05, max(x[[1]], na.rm = T), 0.05)
   }
 
   if(length(x[[2]]) == 0){
+    #this block handles the case when there are no covariates that are significant with the snp
+    #and we do not need to omit any of the pvalues
     qval.str=qvalue::qvalue(x[[1]], fdr.level = fdr, lambda = lambda)
     sig.vec = qval.str$significant
     q.vec=qval.str$qvalues
   }else{
+    #this block handles the case when there are one of more covariates significant with the variant
+    #and we wish to omit the pvalues corresponding them
     qval.str=qvalue::qvalue(x[[1]][-x[[2]]], fdr.level = fdr, lambda = lambda)
+    #this sets omitted pvalues to NA
     sig.vec[-x[[2]]] = qval.str$significant
     q.vec[-x[[2]]]=qval.str$qvalues
   }
@@ -418,10 +455,14 @@ p.from.reg=function(pc, genes){
 
 #' this function wraps adjust.q and adjust.q reg
 #'
+#' It is not recommended to use this function directly
+#'
 #' @param pvalues a matrix of pvalues or a list of 2-list containing the pvalues and indicies for which pvalues to exlude
 #' (i.e from filtering)
 #' @param fdr.level the false discovery rate passed to adjust.q or adjust.q.reg
 #' @param lambda The value of the tuning parameter to estimate \eqn{pi_0}. Must be in \eqn{[0,1]} passed to adjust.q or adjust.q.reg
+#' @param num.of.trios the total number of trios
+#' @param input.type a string specifying one of 'array' or 'list'
 #' @return of input.type = list, then the output is a list of 2-lists containing the q values and sigificance. Else if the
 #' input.type == array, then the output is a 2-list where the first element is a matrix of qvalues and the second element is
 #' a matrix of significance determinations
@@ -445,12 +486,18 @@ get.q.sig = function(pvalues, fdr.level, lambda.seq, num.of.trios, input.type = 
 }
 
 
-#' this function exexutes and performs covariate selection and filtering for the regression method
+#' this function is wrapped by get.conf.trios and executes covariate selection and filtering for the regression method
 #'
-#' @param pvalues a matrix of pvalues or a list of 2-list containing the pvalues and indicies for which pvalues to exlude
-#' (i.e from filtering)
-#' @param fdr.level the false discovery rate passed to adjust.q or adjust.q.reg
-#' @param lambda The value of the tuning parameter to estimate \eqn{pi_0}. Must be in \eqn{[0,1]} passed to adjust.q or adjust.q.reg
+#'#' It is not recommended to use this function directly
+#'
+#' @param covpool pool of confounding variables passed from \eqn{get.conf.trios}
+#' @param trio.mat the trios in matrix form passed from \eqn{get.conf.trios}
+#' @param cor.pvalue.matrix the correlation pvalue matrix passed from passed from \eqn{get.conf.trios}
+#' @param filtering (logical) TRUE indicates that filtering should be done, passed from \eqn{get.conf.trios}
+#' @param filter.fdr the false discovery rate for filtering common child and intermediate variables
+#' @param selection.fdr the false discovery rate for selecting confounding variables
+#' @param lam.seq the cutoff values for the q-value correction passed from \eqn{get.conf.trios}
+#' @param triolist the trios is list format
 #' @return a list
 #' @export regression.method
 
@@ -472,33 +519,40 @@ regression.method = function(covpool, trio.mat, cor.pvalue.matrix, filtering, fi
     #get the indices for the variants
     idx = seq(1, dim(trio.mat)[2]-2, 3)
     #get filtering qvalues and significance matrices, using filtering fdr
+    #only supply the values for each covariate with the genetic variants
     out = get.q.sig(pvalues = cor.pvalue.matrix[idx,], fdr.level = filter.fdr, lambda.seq = lam.seq)
-    #get the indices of covs significant with the variant
-    variant.sig = apply(out$sigmat, 2, which)
-    p.as.list = as.list(p.mat)
+    #get the indices of covs significant with the variants
+    variant.sig = apply(out$sigmat, 1, which)
+    #convert the regression pvalues in a list of length = ncol(p.mat)
+    p.as.list = as.list(t(p.mat))
 
     #combine the vector of pvalues for a pc with all gene pairs with the indicators for which
     #pvalues should be omitted in the adjustment (from variant.sig) into an iterable list
     iterate.list = lapply(as.list(1:dim(covpool)[2]), function(x,y,z) list(y[[x]],z[[x]]),
                          y = p.as.list, z = variant.sig)
 
+    #calculate the qvalues for the regression pvalues ommitted pvalues for covs significant with the snp
+    #iterates over the vector of pvalues corresponding to each pc with all trios
     out.final = get.q.sig(pvalues = iterate.list, fdr.level = selection.fdr,
                           lambda.seq = lam.seq, num.of.trios = length(idx), input.type = 'list')
 
 
   }else{
+    #if no filtering
     out = list(sigmat = NULL, qmat = NULL)
     out.final = get.q.sig(pvalues = p.mat, fdr.level = selection.fdr, lambda.seq = lam.seq)
 
   }
 
   #---------------------selection-of-covs---------------------
-
+  #obtain the final list of selected covs
   final.list.sig.asso.covs = apply(out.final$sigmat, 1, function(x){which(x)})
+  #obtain the final list of omitted covs
   filtered = apply(out.final$sigmat, 1, function(x){which(is.na(x))})
 
   return(list(final.list.covs = final.list.sig.asso.covs, filtered.covs = filtered,
-              reg.pvalues = p.mat, q.values = out$qmat, sig.mat = out$sigmat,
+              reg.pvalues = p.mat, cor.pvalues = cor.pvalue.matrix,
+              q.values = out$qmat, sig.mat = out$sigmat,
               filt.qvalues = out$qmat))
 
 }
@@ -507,12 +561,16 @@ regression.method = function(covpool, trio.mat, cor.pvalue.matrix, filtering, fi
 
 
 
-#' this function exexutes and performs covariate selection and filtering for the correlation method
+#' this function is wrapped by get.conf.trios and executes covariate selection and filtering for the correlation method
 #'
-#' @param pvalues a matrix of pvalues or a list of 2-list containing the pvalues and indicies for which pvalues to exlude
-#' (i.e from filtering)
-#' @param fdr.level the false discovery rate passed to adjust.q or adjust.q.reg
-#' @param lambda The value of the tuning parameter to estimate \eqn{pi_0}. Must be in \eqn{[0,1]} passed to adjust.q or adjust.q.reg
+#' It is not recommended to use this function directly
+#'
+#' @param pvalue.matrix the correlation pvalue matrix passed from passed from \eqn{get.conf.trios}
+#' @param filtering (logical) TRUE indicates that filtering should be done, passed from \eqn{get.conf.trios}
+#' @param selection.fdr the false discovery rate for selecting confounding variables
+#' @param lam.seq the cutoff values for the q-value correction passed from \eqn{get.conf.trios}
+#' @param trio.idx an array of size \eqn{number of trios X 2} giving the column start and stop indices for each trio in the
+#' trio matrix passed from \eqn{get.conf.trios}
 #' @return a list
 #' @export correlation.method
 
@@ -558,7 +616,7 @@ correlation.method = function(pvalue.matrix, filtering, selection.fdr, lam.seq, 
                                   y=sig.asso.covs)
 
     return(list(final.list.covs = final.list.sig.asso.covs, filtered.covs = filtered,
-                q.values = out$qmat, sig.mat = out$sigmat))
+                p.values = pvalue.matrix, q.values = out$qmat, sig.mat = out$sigmat))
 
   }
 }
