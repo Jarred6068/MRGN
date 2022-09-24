@@ -320,17 +320,19 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
       if(length(z[[x]])==0) list(z[[x]], y, w[,u[[x]]]) else list(z[[x]], y[,-z[[x]]],w[,u[[x]]]),
       y = cov.pool, z = variant.sig, w = gene.mat, u = gene.pair.idx)
 
-    out.final=as.data.frame(sapply(iterate.list, function(x) p.from.reg(inlist = x, cov.cols = dim(cov.pool)[2],
-                                                                        fdr_level = selection_fdr, lambda = lambda)))
+    reg.pvalues=as.data.frame(sapply(iterate.list, function(x) p.from.reg(inlist = x, cov.cols = dim(cov.pool)[2])))
 
     #=========================================Covariate-selection========================================
     #calculate the qvalues for the regression pvalues ommitted pvalues for covs significant with the snp
     #iterates over the vector of pvalues corresponding to each pc with all trios
-    reg.sigmat = sapply(out.final, function(x) x$significance)
-    reg.pvalues = sapply(out.final, function(x) x$pvalue)
-    reg.qvalues = sapply(out.final, function(x) x$qvalue)
+    out.final = get.q.sig(reg.pvalues, fdr.level = selection_fdr,
+                          lambda.seq = lambda, contains.na = TRUE)
 
+    #extract the qvalues and significance matrix
+    reg.sigmat = out.final$sigmat
+    reg.qvalues = out.final$qmat
 
+    #store filtered covs and filtering information
     filtered = variant.sig
     filt.sig = out$sigmat
     filt.q = out$qmat
@@ -347,6 +349,7 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
     reg.sigmat = out.final$sigmat
     reg.pvalues = p.mat
     reg.qvalues = out.final$qmat
+    #set filtering information == NULL
     filtered = NULL
     cor.p.mat = NULL
     cor.r.mat = NULL
@@ -406,45 +409,46 @@ adjust.q=function(p, fdr, lambda){
 
 
 
-#' #' A simple function to apply the qvalue correction to a set of pvalues specifically from filtered regression
-#' #'
-#' #' @param x a two element list with the first element being a set of pvalues and the second element being
-#' #' a set of indicies for pvalues to omit
-#' #' @param fdr the false discovery rate
-#' #' @param lambda The value of the tuning parameter to estimate \eqn{pi_0}. Must be in \eqn{[0,1)}
-#' #' @return an \eqn{n X 2} dataframe containing the qvalues, and significance (logical)
-#' #' @export adjust.q.reg
+#' A simple function to apply the qvalue correction to a set of pvalues specifically from filtered regression
 #'
-#'
-#'
-#' adjust.q.reg=function(x, fdr, lambda, num.of.trios){
-#'   #preallocate significance and qvalue as vectors of NAs
-#'   sig.vec = rep(NA, num.of.trios)
-#'   q.vec = rep(NA, num.of.trios)
-#'   #apply qvalue correction
-#'   if(is.null(lambda)){
-#'     #if cutoff values not supplied set them as:
-#'     lambda=seq(0.05, max(x[[1]], na.rm = T), 0.05)
-#'   }
-#'
-#'   if(length(x[[2]]) == 0){
-#'     #this block handles the case when there are no covariates that are significant with the snp
-#'     #and we do not need to omit any of the pvalues
-#'     qval.str=qvalue::qvalue(x[[1]], fdr.level = fdr, lambda = lambda)
-#'     sig.vec = qval.str$significant
-#'     q.vec=qval.str$qvalues
-#'   }else{
-#'     #this block handles the case when there are one of more covariates significant with the variant
-#'     #and we wish to omit the pvalues corresponding them
-#'     qval.str=qvalue::qvalue(x[[1]][-x[[2]]], fdr.level = fdr, lambda = lambda)
-#'     #this sets omitted pvalues to NA
-#'     sig.vec[-x[[2]]] = qval.str$significant
-#'     q.vec[-x[[2]]]=qval.str$qvalues
-#'   }
-#'   #extract significance and qvalues and return
-#'
-#'   return(cbind.data.frame(significant=sig.vec, qvalue=q.vec))
-#' }
+#' @param x a two element list with the first element being a set of pvalues and the second element being
+#' a set of indicies for pvalues to omit
+#' @param fdr the false discovery rate
+#' @param lambda The value of the tuning parameter to estimate \eqn{pi_0}. Must be in \eqn{[0,1)}
+#' @return an \eqn{n X 2} dataframe containing the qvalues, and significance (logical)
+#' @export adjust.q.reg
+
+
+
+adjust.q.reg=function(x, fdr, lambda, num.of.trios){
+  #preallocate significance and qvalue as vectors of NAs
+  which.na = which(is.na(x))
+  sig.vec = rep(NA, num.of.trios)
+  q.vec = rep(NA, num.of.trios)
+  #apply qvalue correction
+  if(is.null(lambda)){
+    #if cutoff values not supplied set them as:
+    lambda=seq(0.05, max(x, na.rm = T), 0.05)
+  }
+
+  if(length(which.na) == 0){
+    #this block handles the case when there are no covariates that are significant with the snp
+    #and we do not need to omit any of the pvalues
+    qval.str=qvalue::qvalue(x, fdr.level = fdr, lambda = lambda)
+    sig.vec = qval.str$significant
+    q.vec=qval.str$qvalues
+  }else{
+    #this block handles the case when there are one of more covariates significant with the variant
+    #and we wish to omit the pvalues corresponding them
+    qval.str=qvalue::qvalue(na.omit(x), fdr.level = fdr, lambda = lambda)
+    #this sets omitted pvalues to NA
+    sig.vec[-which.na] = qval.str$significant
+    q.vec[-which.na]=qval.str$qvalues
+  }
+  #extract significance and qvalues and return
+
+  return(cbind.data.frame(significant=sig.vec, qvalue=q.vec))
+}
 
 
 
@@ -473,34 +477,25 @@ p.from.cor=function(r, n){
 #' @return a vector
 #' @export p.from.reg
 
-p.from.reg=function(inlist, cov.cols, fdr_level, lambda){
+p.from.reg=function(inlist, cov.cols){
 
   which.removed = inlist[[1]]
   pc.list = as.list(inlist[[2]])
   genes = inlist[[3]]
   pstats.final = rep(NA, cov.cols)
-  qstats.final = rep(NA, cov.cols)
-  sig.final = rep(NA, cov.cols)
   #convert each pair of genes and the pc into a list of dataframes
   dfs=lapply(pc.list, function(x,y) {cbind.data.frame(PC=x, gene1 = y[,1], gene2 = y[,2])}, y = genes)
   #apply the regression of the pc on each pair of genes
   fstats=sapply(dfs, function(x){summary(stats::lm(PC~., data=x))$fstatistic})
   #calculate the pvalue of the overall f statistic from each regression
   pstats = apply(fstats, 2, function(x){1-stats::pf(q = x[1], df1 = x[2], df2 = x[3])})
-  q.out = adjust.q(pstats, fdr = fdr_level, lambda = lambda)
-  sig = q.out$significant
-  qval = q.out$qvalue
   #return pvalues vector
   if(length(which.removed) == 0){
     pstats.final = pstats
-    qstats.final = qval
-    sig.final = sig
   }else{
     pstats.final[-which.removed] = pstats
-    qstats.final[-which.removed] = qval
-    sig.final[-which.removed] = sig
   }
-  return(list(pvalue = pstats.final, qvalue = qstats.final, signifcance = sig.final))
+  return(pvalue = pstats.final)
 }
 
 
@@ -547,15 +542,24 @@ p.from.reg2=function(pc, genes){
 #' a matrix of significance determinations
 #' @export get.q.sig
 
-get.q.sig = function(pvalues, fdr.level, lambda.seq){
+get.q.sig = function(pvalues, fdr.level, lambda.seq, contains.na = FALSE){
 
+  if(contains.na == FALSE){
+    adjust.out = apply(pvalues, 2, adjust.q, fdr = fdr.level, lambda = lambda.seq)
 
-  adjust.out = apply(pvalues, 2, adjust.q, fdr = fdr.level, lambda = lambda.seq)
+    #extract the qvalue and significance matrix
+    cor.sig.mat = sapply(adjust.out, function(x) x$significant)
+    cor.q.mat = sapply(adjust.out, function(x) x$qvalue)
+    return(list(sigmat = cor.sig.mat, qmat = cor.q.mat))
+  }else{
+    adjust.out = apply(pvalues, 2, adjust.q.reg, fdr = fdr.level, lambda = lambda.seq,
+                       num.of.trios = min(dim(pvalues)))
 
-  #extract the qvalue and significance matrix
-  cor.sig.mat = sapply(adjust.out, function(x) x$significant)
-  cor.q.mat = sapply(adjust.out, function(x) x$qvalue)
-  return(list(sigmat = cor.sig.mat, qmat = cor.q.mat))
+    #extract the qvalue and significance matrix
+    cor.sig.mat = sapply(adjust.out, function(x) x$significant)
+    cor.q.mat = sapply(adjust.out, function(x) x$qvalue)
+    return(list(sigmat = cor.sig.mat, qmat = cor.q.mat))
+  }
 }
 
 
