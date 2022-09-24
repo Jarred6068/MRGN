@@ -36,29 +36,17 @@
 #' @examples
 #'
 #' \dontrun{
-#' #fast example
-#' trio.conf=get.conf.matrix(data=do.call('cbind',WBtrios[1:40]),
+#' #fast example on a set of genes
+#' #set the blocksize to be 1/3 the number of genes
+#' trio.conf=get.conf.matrix(data=WBgenes,
 #'                           cov.pool=WBscores,
-#'                           blocksize=10)
+#'                           blocksize=round((1/3)*dim(WBgenes)[2]))
 #'
-#' # example with manual filtering
-#'
-#' triomat = do.call('cbind', WBtrios[1:40])
-#' snp.idx = seq(1, dim(triomat)[2]-2, 3)
-#' snps = triomat[,snp.idx]
-#' genes = triomat[,-snp.idx]
-#'
-#' gene.confs=get.conf.matrix(data=genes,
+#' #fast example on a set of SNPs
+#' #set the blocksize to be 1/3 the number of snps
+#' gene.confs=get.conf.matrix(data=WBsnps,
 #'                           cov.pool=WBscores,
-#'                           blocksize=10)
-#'
-#' snp.confs=get.conf.matrix(data=snps,
-#'                           cov.pool=WBscores,
-#'                           blocksize=10)
-#'
-#'
-#'
-#'
+#'                           blocksize=round((1/3)*dim(WBsnps)[2]))
 #'
 #'}
 
@@ -84,11 +72,12 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, blocksize=2000, apply.qval=TR
   #get the sample sizes used in each pairwise correlation calculation
   sample.sizes = apply(data, 2, function(x) length(na.omit(x)))
   #calculate the correlations of each PC with the trios
+  message(paste0("Calculating correlation matrix of size ", ncol(data), " x ", ncol(cov.pool),
+                 " using ", ceiling(ncol(data)/blocksize), " blocks"))
   cormat = propagate::bigcor(data, cov.pool, verbose = T, use = "pairwise.complete.obs", size = blocksize)
 
   #===================================Confounder-Selection=======================================
 
-  message("Applying method = \"correlation\" on confounding variables...")
   #perform the pearson correlation test, apply qvalue, and return which are significant
   pr.mat=apply(as.data.frame(cormat[,]), 2, p.from.cor, n=sample.sizes)
   #extract the pvalues and correlations
@@ -102,12 +91,14 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, blocksize=2000, apply.qval=TR
   #-----------------apply-correction-to-pvalues-------------------
   #perform the correction
   if(apply.qval==TRUE){
+    message(paste0("Applying qvalue correction to control the FDR at ", selection_fdr))
     #qvalue correction
     qsig.mat = apply(p.mat, 2, adjust.q, fdr = selection_fdr, lambda = lambda)
     sig.mat = sapply(qsig.mat, function(x) x$significant)
     q.mat = sapply(qsig.mat, function(x) x$qvalue)
     p.adj.mat = matrix(NA, nrow = nrow(p.mat), ncol = ncol(p.mat))
   }else{
+    message(paste0("Applying bonferroni correct with threshold ", alpha))
     #bonferroni correction
     p.adj.mat = apply(p.mat, 2, stats::p.adjust, method="bonferroni")
     sig.mat = apply(p.adj.mat, 2, function(x) x<=alpha)
@@ -118,6 +109,7 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, blocksize=2000, apply.qval=TR
 
   #-------------------obtain-final-list-of-significant-covs----------------
   #find the covs that correlated with every column of the trio matrix
+  message("Selection significant covariates...")
   sig.asso.covs=apply(sig.mat, 1, function(x){which(x)})
 
 
@@ -136,6 +128,7 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, blocksize=2000, apply.qval=TR
 
 
     if(save.list==TRUE){
+      message(paste0("saving output at ", save.list, ".RData"))
       save(out.list, file = paste0(save.path,".RData"))
     }
 
@@ -151,15 +144,15 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, blocksize=2000, apply.qval=TR
 #' A function to select a set of confounding variables for each trio
 #'
 #' This function takes in a list or dataframe of trios and a matrix of potential confounding variables (e.g whole-genome expression or
-#' methylation PC scores) and selects the confounding variables associated with each trio using either a correlation-based procedure of \insertCite{badsha2019learning}{MRGN}
-#' or regression-based procedure of \insertCite{yang2017identifying}{MRGN}. Additionally, this function allows the user to filter common child and intermediate confounding
+#' methylation PC scores) and selects the confounding variables associated with each trio using the regression-based procedure of
+#' \insertCite{yang2017identifying}{MRGN}. Additionally, this function allows the user to filter common child and intermediate confounding
 #' variables by removing selected confounders that are significantly associated with the genetic variant.
 #'
 #' @param trios either (1) a list where each element contains a dataframe corresponding to a trio or (2) a single data
 #' frame with samples in rows and trios in the columns. The assumed structure of each trio is that the Genetic variant
 #' is the first column followed by the two molecular phenotypes.
-#' @param cov.pool a dataframe of the whole-genome PCA scores with observations in rows and PCs in columns
-#' @param blocksize the number of columns to use in each block of correlation calculations passed to propagate::bigcor
+#' @param cov.pool a dataframe of candidate confounding variables with observations in rows and covariates in columns
+#' @param blocksize the number of variants to use in each block of correlation calculations passed to propagate::bigcor
 #' @param selection_fdr the false discovery rate (default = 0.05) for selecting confounders
 #' @param filter_int_child (logical) to determine if common child and intermediate confounding variables should be filtered out
 #' (removed) from the significant confounders for each trio. Note: only used when return.for.trios==TRUE. Default = FALSE.
@@ -167,22 +160,21 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, blocksize=2000, apply.qval=TR
 #' and intermediate confounding variable (only used when method = "regression").
 #' @param lambda the cut off points of the tuning parameter to estimate \eqn{pi_0}. Must be between 0,1. If is.null(lambda) the default
 #' passed to \eqn{adjust.q()} is \eqn{seq(0.5, max(pvalues), 0.05)}
-#' @param alpha the test threshold for the bonferroni correacted pvalues when \eqn{apply.qval = FALSE}
-#' @param method the method to calculate the associated pcs. A character string specifying either "correlation" or "regression".
-#' Note that when \eqn{method = "regression"}, \eqn{return.for.trios} is forced to TRUE
 #' @param save.list (logical) if TRUE the output is saved as a .RData object (default = FALSE)
 #' @param save.path string specifying the path name of the output
 #' @return a list of 6 elements containing:
 #'   \describe{
-#'   \item{sig.asso.pcs}{default: a list of length = The number of trios of the column indices of significant PCs detected for each trio
-#'   Alternatively, if return.for.trios = FALSE, a list of length=ncol(trios) of the column indices of significant PCs detected
-#'   for each column of trios}
-#'   \item{pvalues}{a matrix of dimension \eqn{ncol(cov.pool) X ncol(trios)} of the pvalues from the pearson correlation test on each set of correlations}
-#'   \item{qvalues}{a matrix of dimension \eqn{ncol(cov.pool) X ncol(trios)} of qvalues from each set of correlations}
-#'   \item{cors}{the matrix of the calculated pairwise correlations of dimension \eqn{ncol(cov.pool) X ncol(trios)}}
-#'   \item{sig}{A matrix of logical values of dimension \eqn{ncol(cov.pool) X ncol(trios)}}
-#'   \item{adj.p}{A matrix of dimension \eqn{ncol(cov.pool) X ncol(trios)} of the adjusted p-values if \eqn{apply.qval = FALSE}}
-#'   \item{filtered_covs}{A list of length = the number of trios giving the filtered covariates if \eqn{filter_int_child = TRUE}}
+#'   \item{sig.asso.covs}{a list of length = number of trios. each element is a set of column indices indicating selected covariates
+#'   from \eqn{cov.pool}}
+#'   \item{filtered.covs}{if \eqn{filter_in_child} = TRUE, then it is a list of length = number of trios giving the column indices of
+#'   \eqn{cov.pool} indicating the covariates that were filtered}
+#'   \item{reg.pvalues}{a matrix of dimension \eqn{number of trios X ncol(cov.pool)} of pvalues}
+#'   \item{reg.qvalues}{a matrix of dimension \eqn{number of trios X ncol(cov.pool)} of qvalues}
+#'   \item{reg.sig.mat}{a logical matrix of dimension \eqn{number of trios X ncol(cov.pool)} indicating the significant qvalues from \eqn{reg.q.values}}
+#'   \item{filtering.pvalues}{a matrix of dimension \eqn{number of trios X ncol(cov.pool)} of filtering pvalues}
+#'   \item{filtering.correlations}{a correlation matrix of dimension \eqn{number of trios X ncol(cov.pool)} representing the correlations between the genetic variants and covariates}
+#'   \item{filtering.qvalues}{a matrix of dimension \eqn{number of trios X ncol(cov.pool)} of filtering qvalues}
+#'   \item{filtering.sigmat}{a logical matrix of dimension \eqn{number of trios X ncol(cov.pool)} indicating the significant qvalues from \eqn{filtering.qvalues}}
 #' }
 #' @export get.conf.trios
 #' @references
@@ -192,25 +184,16 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, blocksize=2000, apply.qval=TR
 #' @examples
 #'
 #' \dontrun{
-#' #fast example on 40 trios using qvalue correction and correlation method
+#' #fast example on 40 trios
 #' trio.conf=get.conf.trios(trios=WBtrios[1:40],
 #'                          cov.pool=WBscores,
-#'                          blocksize=10,
-#'                          method = "correlation")
+#'                          blocksize=10)
 #'
-#' #fast example on 40 trios using bonferroni correction and correlation method
+#' #fast example on 40 trios using common child and intermediate variable filtering
 #' trio.conf2=get.conf.trios(trios=WBtrios[1:40],
-#'                           cov.pool=WBscores,
-#'                           blocksize=10,
-#'                           method = "regression")
-#'
-#' #fast example on 40 trios using the qvalue correction and the regression method
-#' #Note: this method is slower than method = "correlation"
-#' trio.conf3=get.conf.trio(trios=WBtrios[1:40],
 #'                          cov.pool=WBscores,
 #'                          blocksize=10,
-#'                          filter_int_child = T,
-#'                          method = "regression")
+#'                          filter_int_child = TRUE)
 #'}
 
 
@@ -288,8 +271,8 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
     #get the sample sizes used in each pairwise correlation calculation
     sample.sizes = apply(snp.mat, 2, function(x) length(na.omit(x)))
 
-    print(paste0("Calculating correlation matrix for variants of size ", num.trios, " x ", dim(cov.pool)[2],
-                 " using ", round(num.trios/blocksize), " blocks"))
+    print(paste0("Calculating correlation matrix for variants.. size ", num.trios, " x ", dim(cov.pool)[2],
+                 " using ", ceiling(num.trios/blocksize), " blocks"))
     #calculate the correlations of each PC with the trios
     cormat = propagate::bigcor(snp.mat, cov.pool, verbose = T, use = "pairwise.complete.obs", size = blocksize)
     #perform marginal test
@@ -304,7 +287,7 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
     #the steps to the final result are different depending on method
     #the switch separates the process according to each method.
     #if filtering, then filter the covariate pool for each trio
-    message("For method: \"regression\" - filtering common child and intermediate variables from cov.pool")
+    message("Filtering common child and intermediate variables from cov.pool...")
     #get filtering qvalues and significance matrices, using filtering fdr
     #only supply the values for each covariate with the genetic variants
     out = get.q.sig(pvalues = cor.p.mat, fdr.level = filter_fdr, lambda.seq = lambda)
@@ -320,11 +303,13 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
       if(length(z[[x]])==0) list(z[[x]], y, w[,u[[x]]]) else list(z[[x]], y[,-z[[x]]],w[,u[[x]]]),
       y = cov.pool, z = variant.sig, w = gene.mat, u = gene.pair.idx)
 
-    reg.pvalues=as.data.frame(sapply(iterate.list, function(x) p.from.reg(inlist = x, cov.cols = dim(cov.pool)[2])))
+    reg.pvalues=t(as.data.frame(sapply(iterate.list, function(x) p.from.reg(inlist = x,
+                                                                            cov.cols = dim(cov.pool)[2]))))
 
     #=========================================Covariate-selection========================================
     #calculate the qvalues for the regression pvalues ommitted pvalues for covs significant with the snp
     #iterates over the vector of pvalues corresponding to each pc with all trios
+    message("Selecting covariates from the filtered pool...")
     out.final = get.q.sig(reg.pvalues, fdr.level = selection_fdr,
                           lambda.seq = lambda, contains.na = TRUE)
 
@@ -342,6 +327,7 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
 
 
   }else{
+    message("Selecting covariates from the pool...")
     #if no filtering
     pc.list = as.list(cov.pool)
     p.mat=as.data.frame(sapply(pc.list, p.from.reg2, genes = gene.mat))
@@ -364,19 +350,46 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
   #obtain the final list of selected covs
   final.list.sig.asso.covs = apply(reg.sigmat, 1, function(x){which(x)})
 
+  #naming output
+  trio.names = apply(cbind(seq1 = seq(1, dim(gene.mat)[2]-1, 2),
+                                seq2 = seq(2, dim(gene.mat)[2], 2),
+                                seq3 = seq(1, dim(snp.mat)[2], 1)),
+                          1, function(x,y,z) paste(c(z[x[3]], y[x[1:2]]), collapse = ":"),
+                          y = gene.cn, z = snp.cn)
+
+  colnames(reg.sigmat) = colnames(reg.pvalues) = colnames(reg.qvalues) = colnames(cov.pool)
+  row.names(reg.sigmat) = row.names(reg.pvalues) = row.names(reg.qvalues) = trn
+  if(!is.null(filt.q)){
+    row.names(filt.q) = row.names(filt.sig) = row.names(cor.p.mat) = row.names(cor.r.mat) = snp.cn
+    colnames(filt.q) = colnames(filt.sig) = colnames(cor.p.mat) = colnames(cor.r.mat) = colnames(cov.pool)
+  }
+
+
+
+
 
   result.list = list(sig.asso.covs = final.list.sig.asso.covs, filtered.covs = filtered,
-              reg.p.values = reg.pvalues, reg.q.values = reg.qvalues, reg.sig.mat = reg.sigmat,
+              reg.pvalues = reg.pvalues, reg.qvalues = reg.qvalues, reg.sig.mat = reg.sigmat,
               filtering.pvalues = cor.p.mat, filtering.correlations = cor.r.mat,
-              filtering.qvalues = filt.q, filtering.sigmat = filt.sig)
+              filtering.qvalues = filt.q, filtering.sigmat = filt.sig, trio.ID = trio.names)
 
   if(save.list==TRUE){
+    message(paste0("saving output at ", save.list, ".RData"))
     save(result.list, file = paste0(save.path,".RData"))
   }
 
   return(result.list)
 
 }
+
+
+
+
+
+
+
+
+
 
 
 
@@ -409,6 +422,19 @@ adjust.q=function(p, fdr, lambda){
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 #' A simple function to apply the qvalue correction to a set of pvalues specifically from filtered regression
 #'
 #' @param x a two element list with the first element being a set of pvalues and the second element being
@@ -417,8 +443,6 @@ adjust.q=function(p, fdr, lambda){
 #' @param lambda The value of the tuning parameter to estimate \eqn{pi_0}. Must be in \eqn{[0,1)}
 #' @return an \eqn{n X 2} dataframe containing the qvalues, and significance (logical)
 #' @export adjust.q.reg
-
-
 
 adjust.q.reg=function(x, fdr, lambda, num.of.trios){
   #preallocate significance and qvalue as vectors of NAs
@@ -452,14 +476,24 @@ adjust.q.reg=function(x, fdr, lambda, num.of.trios){
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 #' A function to calculate the pearson correlation p-values
 #'
 #' @param r either (1) a single pearson correlation coefficient or (2) a vector of correlation coefficients
 #' @param n the sample size (if \eqn{length(r)>1} then n must be a vector of sample sizes)
 #' @return an \eqn{n X 2} dataframe containing the correlations and pvalues
 #' @export p.from.cor
-
-
 
 p.from.cor=function(r, n){
   #calculate t values from vector of correlations
@@ -468,6 +502,16 @@ p.from.cor=function(r, n){
   p=2 * (1 -stats::pt(q = abs(t), df = n-2))
   return(cbind.data.frame(pvalue=p,cor=r))
 }
+
+
+
+
+
+
+
+
+
+
 
 #' A function to perform the regression of a possible confounding pc aganst all pairs of cis and trans genes given
 #' in \eqn{genes}
@@ -500,6 +544,13 @@ p.from.reg=function(inlist, cov.cols){
 
 
 
+
+
+
+
+
+
+
 #' A function to perform the regression of a possible confounding pc aganst all pairs of cis and trans genes given
 #' in \eqn{genes} - when no filtering is required
 #'
@@ -524,6 +575,12 @@ p.from.reg2=function(pc, genes){
   #return pvalues vector
   return(pstats)
 }
+
+
+
+
+
+
 
 
 
@@ -563,183 +620,17 @@ get.q.sig = function(pvalues, fdr.level, lambda.seq, contains.na = FALSE){
 }
 
 
-# #' this function is wrapped by get.conf.trios and executes covariate selection and filtering for the regression method
-# #'
-# #'#' It is not recommended to use this function directly
-# #'
-# #' @param covpool pool of confounding variables passed from \eqn{get.conf.trios}
-# #' @param trio.mat the trios in matrix form passed from \eqn{get.conf.trios}
-# #' @param cor.pvalue.matrix the correlation pvalue matrix passed from passed from \eqn{get.conf.trios}
-# #' @param filtering (logical) TRUE indicates that filtering should be done, passed from \eqn{get.conf.trios}
-# #' @param filter.fdr the false discovery rate for filtering common child and intermediate variables
-# #' @param selection.fdr the false discovery rate for selecting confounding variables
-# #' @param lam.seq the cutoff values for the q-value correction passed from \eqn{get.conf.trios}
-# #' @param triolist the trios is list format
-# #' @return a list
-# #' @export regression.method
-#
-# regression.method = function(covpool, gene.mat, snp.cors, filtering, filter.fdr,
-#                              selection.fdr, lam.seq, triolist){
-#   #METHOD = Regression
-#
-#'   #---------------filtering------------------
-#'   if(filtering == TRUE){
-#'     #if filtering, then filter the covariate pool for each trio
-#'     message("For method: \"regression\" - filtering common child and intermediate variables from cov.pool")
-#'     #get filtering qvalues and significance matrices, using filtering fdr
-#'     #only supply the values for each covariate with the genetic variants
-#'     out = get.q.sig(pvalues = snp.cors, fdr.level = filter.fdr, lambda.seq = lam.seq)
-#'     #get the indices of covs significant with the variants
-#'     variant.sig = apply(out$sigmat, 1, which)
-#'
-#'     gene.pair.idx = as.list(rbind.data.frame(seq1 = seq(1, dim(gene.mat)[2]-1, 2),
-#'                                         seq2 = seq(2, dim(gene.mat)[2], 2)))
-#'
-#'     #combine the vector of pvalues for a pc with all gene pairs with the indicators for which
-#'     #pvalues should be omitted in the adjustment (from variant.sig) into an iterable list
-#'     iterate.list = lapply(as.list(1:length(variant.sig)), function(x,y,z,w,u)
-#'       if(length(z[[x]])==0) list(z[[x]], y, w[,u[[x]]]) else list(z[[x]], y[,-z[[x]]],w[,u[[x]]]),
-#'                          y = covpool, z = variant.sig, w = gene.mat, u = gene.pair.idx)
-#'
-#'     p.mat=as.data.frame(sapply(iterate.list, function(x) p.from.reg(inlist = x, cov.cols = dim(covpool)[2])))
-#'
-#'     #calculate the qvalues for the regression pvalues ommitted pvalues for covs significant with the snp
-#'     #iterates over the vector of pvalues corresponding to each pc with all trios
-#'     out.final = get.q.sig(pvalues = t(p.mat), fdr.level = selection.fdr, lambda.seq = lam.seq)
-#'
-#'
-#'   }else{
-#'     #if no filtering
-#'     pc.list = as.list(covpool)
-#'     p.mat=as.data.frame(sapply(pc.list, p.from.reg2, genes = gene.mat))
-#'     out.final = get.q.sig(pvalues = p.mat, fdr.level = selection.fdr, lambda.seq = lam.seq)
-#'
-#'   }
-#'
-#'   #---------------------selection-of-covs---------------------
-#'   #obtain the final list of selected covs
-#'   final.list.sig.asso.covs = apply(out.final$sigmat, 1, function(x){which(x)})
-#'   #obtain the final list of omitted covs
-#'   filtered = apply(out.final$sigmat, 1, function(x){which(is.na(x))})
-#'
-#'   return(list(final.list.covs = final.list.sig.asso.covs, filtered.covs = filtered,
-#'               reg.pvalues = p.mat, cor.pvalues = cor.pvalue.matrix,
-#'               q.values = out$qmat, sig.mat = out$sigmat,
-#'               filt.qvalues = out$qmat))
-#'
-#' }
 
 
 
 
 
-# #' this function is wrapped by get.conf.trios and executes covariate selection and filtering for the correlation method
-# #'
-# #' It is not recommended to use this function directly
-# #'
-# #' @param pvalue.matrix the correlation pvalue matrix passed from passed from \eqn{get.conf.trios}
-# #' @param filtering (logical) TRUE indicates that filtering should be done, passed from \eqn{get.conf.trios}
-# #' @param selection.fdr the false discovery rate for selecting confounding variables
-# #' @param lam.seq the cutoff values for the q-value correction passed from \eqn{get.conf.trios}
-# #' @param trio.idx an array of size \eqn{number of trios X 2} giving the column start and stop indices for each trio in the
-# #' trio matrix passed from \eqn{get.conf.trios}
-# #' @return a list
-# #' @export correlation.method
-#'
-#' correlation.method = function(pvalue.matrix, filtering, selection.fdr, lam.seq, trio.idx){
-#'
-#'   #METHOD = Correlation
-#'   #get the qvalues and significance matrix at selection_fdr
-#'   out = get.q.sig(pvalues = pvalue.matrix, fdr.level = selection.fdr, lambda.seq = lam.seq)
-#'   #get the significant covariates for every column of triomat
-#'   sig.asso.covs=apply(out$sigmat, 1, function(x){which(x)})
-#'
-#'   #-----------------filtering-of-results------------------
-#'   #condense to a single list of covariates for each trio
-#'   #if filtering is specified then we omit the covs detected for the variant:
-#'   if(filtering == TRUE){
-#'     message("For method: \"correlation\" - filtering common child and intermediate variables from results")
-#'     #get the covariates significant with the snp
-#'     sig.asso.covs.trios=apply(trio.idx, 1,
-#'                              function(x,y){ unique(unlist(y[x[1]:x[2]])) },
-#'                              y=sig.asso.covs)
-#'
-#'     sig.covs.snp = out$sigmat[seq(1,dim(out$sigmat)[1],3),]
-#'
-#'     #create a list of indexes to iterate over for filtering
-#'     iterate.idx = as.list(c(1:length(sig.asso.covs.trios)))
-#'
-#'     which.match = lapply(iterate.idx,
-#'                          function(x,y,z) na.omit(match(which(z[x,]), y[[x]])), y = sig.asso.covs.trios, z = sig.covs.snp )
-#'
-#'     filtered = lapply(as.list(c(1:length(sig.asso.covs.trios))),
-#'                       function(x,y,z) y[[x]][z[[x]]], y = sig.asso.covs.trios, z = which.match )
-#'     #remove marginally sig covs
-#'     final.list.sig.asso.covs = lapply(as.list(c(1:length(sig.asso.covs.trios))),
-#'                                      function(x,y,z) y[[x]][-na.omit(z[[x]])], y = sig.asso.covs.trios, z = which.match )
-#'
-#'     return(list(final.list.covs = final.list.sig.asso.covs, filtered.covs = filtered))
-#'   }else{
-#'
-#'     filtered = NULL
-#'     #final list of pcs for trios
-#'     final.list.sig.asso.covs=apply(trio.idx, 1,
-#'                                   function(x,y){ unique(unlist(y[x[1]:x[2]])) },
-#'                                   y=sig.asso.covs)
-#'
-#'     return(list(final.list.covs = final.list.sig.asso.covs, filtered.covs = filtered,
-#'                 p.values = pvalue.matrix, q.values = out$qmat, sig.mat = out$sigmat))
-#'
-#'   }
-#' }
 
 
-# #' This function is wrapped by get.conf() when filter_int_child = TRUE and method = "correlation". It identifies (from the selected)
-# #' confounders in sig.asso.pcs which are correlated with the genetic variant and removes them from the final list of confounders.
-# #' @param sig.asso.pcs a matrix of correlations between the genetic variants the covariate pool of potential confounders
-# #' @param trios see get.conf() for details
-# #' @param cov.pool see get.conf() for details
-# #' @param filter.fdr the filtering fdr threshold
-# #' @return a list of the significant associated PCs/confounders with the indices of the identified common child and intermediate
-# #' confounding variables removed.
-# #' @export filter_out
 
-# filter_out = function(sig.asso.pcs, trios, cov.pool, filter.fdr){
-#
-#   if(is.data.frame(trios)==TRUE){
-#     trio.indices=cbind( start.col = seq(1,dim(trios)[2],3),
-#                         end.col = seq(3,dim(trios)[2],3))
-#
-#     trios = apply(trio.indices, 1, function(x,y) y[,x[1]:x[2]], y = trios)
-#   }
-#   #calculate the mean number of confounders selected for each trio by get.conf()
-#   #if this value is less than 50 it is unlikely there will be enough pvalue to estimate pi0_est
-#   #in qvalue...
-#   mean.num.conf = mean(unlist(lapply(sig.asso.pcs, function(x) length(x) )))
-#   #get the sample sizes for cor calc with each genetic variant (note: assumes the variant is the first column)
-#   sample.sizes = unlist(lapply(trios, function(x) length(stats::na.omit(x[,1])) ))
-#   # get the correlations between the selected confounders and the SNP
-#   cors.list = lapply(c(1:length(trios)), function(x,y,z,w) stats::cor(y[[x]][,1], z[,w[[x]]], use = "pairwise.complete.obs"),
-#                 y = trios, z = cov.pool, w = sig.asso.pcs)
-#   #get the pvalues for each set of correlations
-#   p.list = lapply(c(1:length(trios)), function(x,y,z) p.from.cor(r = t(unlist(y[[x]])), n = z[x])$pvalue,
-#                   y = cors.list, z = sample.sizes)
-#
-#   #perform FDR filtering (either qvalue or BH)
-#   if(mean.num.conf>=50){
-#     message("in filter_out: the mean number of confounders selected for each trio is >50, applying q-value correction for filtering")
-#     q.correct = lapply(p.list, qvalue::qvalue, fdr.level = filter.fdr)
-#     sig.list = lapply(q.correct)$significant
-#   }else{
-#     message("in filter_out: the mean number of confounders selected for each trio <50: applying \" BH \" correction for filtering")
-#     BH.correct = lapply(p.list, function(x) stats::p.adjust(x, method = "BH") )
-#     sig.list = lapply(BH.correct, function(x) x < filter.fdr )
-#   }
-#
-#   #remove the confoundering variables with significant correlation with genetic variant after FDR adjust
-#   sig.asso.pcs.filtered = lapply(c(1:length(trios)), function(x,y,z) y[[x]][-which(z[[x]])],
-#                                  y = sig.asso.pcs, z = sig.list)
-#   #return filtered list
-#   return(sig.asso.pcs.filtered)
-#
-# }
+
+
+
+
+
+
