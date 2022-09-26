@@ -270,7 +270,7 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
     sample.sizes = apply(snp.mat, 2, function(x) length(na.omit(x)))
 
     print(paste0("Calculating correlation matrix for variants.. size ", num.trios, " x ", dim(cov.pool)[2],
-                 " using ", ceiling(max(dim(triomat), dim(cov.pool))/blocksize), " blocks"))
+                 " using ", ceiling(num.trios/blocksize), " blocks"))
     #calculate the correlations of each PC with the trios
     cormat = propagate::bigcor(snp.mat, cov.pool, verbose = T, use = "pairwise.complete.obs", size = blocksize)
     #perform marginal test
@@ -408,7 +408,10 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
 adjust.q=function(p, fdr, lambda){
   #apply qvalue correction
   if(is.null(lambda)){
-    qval.str=qvalue::qvalue(p, fdr.level = fdr, lambda=seq(0.05, max(p, na.rm = T), 0.05))
+    #set the lambda seq
+    lambda=seq(0.05, max(p, na.rm = T), 0.05)
+
+    qval.str=qvalue::qvalue(p, fdr.level = fdr, lambda=lambda)
   }else{
     qval.str=qvalue::qvalue(p, fdr.level = fdr, lambda=lambda)
   }
