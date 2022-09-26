@@ -17,7 +17,7 @@
 #' @param alpha the test threshold for the bonferroni correacted pvalues when \eqn{apply.qval = FALSE}
 #' @param save.list (logical) if TRUE the output is saved as a .RData object (default = FALSE)
 #' @param save.path string specifying the path name of the output list to be save as a .RData structure
-#' @return a list of 6 elements containing:
+#' @return a list of 7 elements containing:
 #'   \describe{
 #'   \item{sig.asso.covs}{a list of \eqn{length=ncol(data)}. Each element in the list is a vector of of indices corresponding to the columns
 #'   of \eqn{cov.pool} that are significantly associated to each input variable (column) in \eqn{data}}
@@ -26,7 +26,6 @@
 #'   \item{cors}{the matrix of the calculated pairwise correlations of dimension \eqn{ncol(cov.pool) X ncol(trios)}}
 #'   \item{sig}{A matrix of logical values of dimension \eqn{ncol(cov.pool) X ncol(data)}}
 #'   \item{adj.p}{A matrix of dimension \eqn{ncol(cov.pool) X ncol(data)} of the adjusted p-values if \eqn{apply.qval = FALSE}}
-# #'   \item{filtered_covs}{A list of length = the number of trios giving the filtered covariates if \eqn{filter_int_child = TRUE}}
 #' }
 #' @export get.conf.matrix
 #' @references
@@ -38,13 +37,13 @@
 #' \dontrun{
 #' #fast example on a set of genes
 #' #set the blocksize to be 1/3 the number of genes
-#' trio.conf=get.conf.matrix(data=WBgenes,
+#' gene.confs=get.conf.matrix(data=WBgenes,
 #'                           cov.pool=WBscores,
 #'                           blocksize=round((1/3)*dim(WBgenes)[2]))
 #'
 #' #fast example on a set of SNPs
 #' #set the blocksize to be 1/3 the number of snps
-#' gene.confs=get.conf.matrix(data=WBsnps,
+#' snp.confs=get.conf.matrix(data=WBsnps,
 #'                           cov.pool=WBscores,
 #'                           blocksize=round((1/3)*dim(WBsnps)[2]))
 #'
@@ -73,7 +72,7 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, blocksize=2000, apply.qval=TR
   sample.sizes = apply(data, 2, function(x) length(na.omit(x)))
   #calculate the correlations of each PC with the trios
   message(paste0("Calculating correlation matrix of size ", ncol(data), " x ", ncol(cov.pool),
-                 " using ", ceiling(ncol(data)/blocksize), " blocks"))
+                 " using ", ceiling(dim(data)[2]/blocksize), " blocks"))
   cormat = propagate::bigcor(data, cov.pool, verbose = T, use = "pairwise.complete.obs", size = blocksize)
 
   #===================================Confounder-Selection=======================================
@@ -162,7 +161,7 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, blocksize=2000, apply.qval=TR
 #' passed to \eqn{adjust.q()} is \eqn{seq(0.5, max(pvalues), 0.05)}
 #' @param save.list (logical) if TRUE the output is saved as a .RData object (default = FALSE)
 #' @param save.path string specifying the path name of the output
-#' @return a list of 6 elements containing:
+#' @return a list of 9 elements containing:
 #'   \describe{
 #'   \item{sig.asso.covs}{a list of length = number of trios. each element is a set of column indices indicating selected covariates
 #'   from \eqn{cov.pool}}
@@ -197,9 +196,8 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, blocksize=2000, apply.qval=TR
 #'}
 
 
-get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr=0.05,
-                        filter_int_child = FALSE, filter_fdr = 0.1, lambda=NULL, alpha=0.05,
-                        save.list=FALSE, save.path="/path/to/save/location"){
+get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr=0.05, filter_int_child = FALSE,
+                        filter_fdr = 0.1, lambda=NULL, save.list=FALSE, save.path="/path/to/save/location"){
 
   #====================================Preprocessing====================================
   #ensure the cov pool is a dataframe
@@ -272,7 +270,7 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
     sample.sizes = apply(snp.mat, 2, function(x) length(na.omit(x)))
 
     print(paste0("Calculating correlation matrix for variants.. size ", num.trios, " x ", dim(cov.pool)[2],
-                 " using ", ceiling(num.trios/blocksize), " blocks"))
+                 " using ", ceiling(max(dim(triomat), dim(cov.pool))/blocksize), " blocks"))
     #calculate the correlations of each PC with the trios
     cormat = propagate::bigcor(snp.mat, cov.pool, verbose = T, use = "pairwise.complete.obs", size = blocksize)
     #perform marginal test
@@ -311,7 +309,7 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
     #iterates over the vector of pvalues corresponding to each pc with all trios
     message("Selecting covariates from the filtered pool...")
     out.final = get.q.sig(reg.pvalues, fdr.level = selection_fdr,
-                          lambda.seq = lambda, contains.na = TRUE)
+                          lambda.seq = lambda, contains.na = any(is.na(reg.pvalues)))
 
     #extract the qvalues and significance matrix
     reg.sigmat = out.final$sigmat
@@ -532,7 +530,7 @@ p.from.reg=function(inlist, cov.cols){
   #apply the regression of the pc on each pair of genes
   fstats=sapply(dfs, function(x){summary(stats::lm(PC~., data=x))$fstatistic})
   #calculate the pvalue of the overall f statistic from each regression
-  pstats = apply(fstats, 2, function(x){1-stats::pf(q = x[1], df1 = x[2], df2 = x[3])})
+  pstats = apply(fstats, 2, function(x){stats::pf(q = x[1], df1 = x[2], df2 = x[3], lower.tail = F)})
   #return pvalues vector
   if(length(which.removed) == 0){
     pstats.final = pstats
@@ -571,7 +569,7 @@ p.from.reg2=function(pc, genes){
   #apply the regression of the pc on each pair of genes
   fstats=sapply(dfs, function(x){summary(stats::lm(PC~., data=x))$fstatistic})
   #calculate the pvalue of the overall f statistic from each regression
-  pstats=apply(fstats, 2, function(x){1-stats::pf(q = x[1], df1 = x[2], df2 = x[3])})
+  pstats=apply(fstats, 2, function(x){stats::pf(q = x[1], df1 = x[2], df2 = x[3], lower.tail = F)})
   #return pvalues vector
   return(pstats)
 }
@@ -603,20 +601,15 @@ get.q.sig = function(pvalues, fdr.level, lambda.seq, contains.na = FALSE){
 
   if(contains.na == FALSE){
     adjust.out = apply(pvalues, 2, adjust.q, fdr = fdr.level, lambda = lambda.seq)
-
-    #extract the qvalue and significance matrix
-    cor.sig.mat = sapply(adjust.out, function(x) x$significant)
-    cor.q.mat = sapply(adjust.out, function(x) x$qvalue)
-    return(list(sigmat = cor.sig.mat, qmat = cor.q.mat))
   }else{
     adjust.out = apply(pvalues, 2, adjust.q.reg, fdr = fdr.level, lambda = lambda.seq,
-                       num.of.trios = min(dim(pvalues)))
-
-    #extract the qvalue and significance matrix
-    cor.sig.mat = sapply(adjust.out, function(x) x$significant)
-    cor.q.mat = sapply(adjust.out, function(x) x$qvalue)
-    return(list(sigmat = cor.sig.mat, qmat = cor.q.mat))
+                       num.of.trios = dim(pvalues)[1])
   }
+
+  #extract the qvalue and significance matrix
+  cor.sig.mat = sapply(adjust.out, function(x) x$significant)
+  cor.q.mat = sapply(adjust.out, function(x) x$qvalue)
+  return(list(sigmat = cor.sig.mat, qmat = cor.q.mat))
 }
 
 
