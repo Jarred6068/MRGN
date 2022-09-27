@@ -157,8 +157,6 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, blocksize=2000, apply.qval=TR
 #' (removed) from the significant confounders for each trio. Note: only used when return.for.trios==TRUE. Default = FALSE.
 #' @param filter_fdr the false discovery rate for filtering common child
 #' and intermediate confounding variable.
-#' @param filt_adjust_by a string specifying one of "cov" or "all". if "cov" then the marginal pvalues for filtering are adjusted
-#' for the family of tests corresponding to a given pc with all variants. if "all" then all the marginal pvalues for filtering are adjusted together
 #' @param lambda the cut off points of the tuning parameter to estimate \eqn{pi_0}. Must be between 0,1. If is.null(lambda) the default
 #' passed to \eqn{adjust.q()} is \eqn{seq(0.5, max(pvalues), 0.05)}
 #' @param save.list (logical) if TRUE the output is saved as a .RData object (default = FALSE)
@@ -188,19 +186,18 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, blocksize=2000, apply.qval=TR
 #' #fast example on 40 trios
 #' trio.conf=get.conf.trios(trios=WBtrios[1:40],
 #'                          cov.pool=WBscores,
-#'                          blocksize=10)
+#'                          blocksize=20)
 #'
 #' #fast example on 40 trios using common child and intermediate variable filtering
 #' trio.conf2=get.conf.trios(trios=WBtrios[1:40],
 #'                          cov.pool=WBscores,
-#'                          blocksize=10,
+#'                          blocksize=20,
 #'                          filter_int_child = TRUE)
 #'}
 
 
 get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr=0.05, filter_int_child = FALSE,
-                        filter_fdr = 0.1, filt_adjust_by =c("cov", "all"), lambda=NULL, save.list=FALSE,
-                        save.path="/path/to/save/location"){
+                        filter_fdr = 0.1, lambda=NULL, save.list=FALSE, save.path="/path/to/save/location"){
 
   #====================================Preprocessing====================================
   #ensure the cov pool is a dataframe
@@ -289,22 +286,14 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
     #the switch separates the process according to each method.
     #if filtering, then filter the covariate pool for each trio
     message("Filtering common child and intermediate variables from cov.pool...")
+
     #get filtering qvalues and significance matrices, using filtering fdr
     #only supply the values for each covariate with the genetic variants
-    if(filt_adjust_by == 'cov'){
-      out = get.q.sig(pvalues = cor.p.mat, fdr.level = filter_fdr, lambda.seq = lambda)
-      #get the indices of covs significant with the variants
-      variant.sig = apply(out$sigmat, 1, which)
-    }else if(filt_adjust_by=="all"){
-      #adjust all pvalues in one adjustment
-      out = as.list(adjust.q(as.vector(t(cor.p.mat)), fdr = filter_fdr, lambda = lambda))
-      out$sigmat = as.data.frame(t(matrix(out$significant, nrow = num.trios, ncol = dim(cov.pool)[2], byrow = T)))
-      out$qmat = as.data.frame(matrix(out$qvalue, nrow = num.trios, ncol = dim(cov.pool)[2], byrow = T))
-      variant.sig = lapply(as.list(out$sigmat), which)
-    }
+    out = get.q.sig(pvalues = cor.p.mat, fdr.level = filter_fdr, lambda.seq = lambda)
+    #get the indices of covs significant with the variants
+    variant.sig = apply(out$sigmat, 1, which)
 
-
-
+    #get the indices of each gene pair
     gene.pair.idx = as.list(rbind.data.frame(seq1 = seq(1, dim(gene.mat)[2]-1, 2),
                                              seq2 = seq(2, dim(gene.mat)[2], 2)))
 
@@ -314,6 +303,8 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
       if(length(z[[x]])==0) list(z[[x]], y, w[,u[[x]]]) else list(z[[x]], y[,-z[[x]]],w[,u[[x]]]),
       y = cov.pool, z = variant.sig, w = gene.mat, u = gene.pair.idx)
 
+    #calculate the regression pvalues
+    message("Calculating regression p-values, this step may take some time...")
     reg.pvalues=t(as.data.frame(sapply(iterate.list, function(x) p.from.reg(inlist = x,
                                                                             cov.cols = dim(cov.pool)[2]))))
 
