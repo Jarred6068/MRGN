@@ -17,7 +17,7 @@
 #' @param alpha the test threshold for the bonferroni correacted pvalues when \eqn{apply.qval = FALSE}
 #' @param save.list (logical) if TRUE the output is saved as a .RData object (default = FALSE)
 #' @param save.path string specifying the path name of the output list to be save as a .RData structure
-#' @return a list of 7 elements containing:
+#' @return a list of 6 elements containing:
 #'   \describe{
 #'   \item{sig.asso.covs}{a list of \eqn{length=ncol(data)}. Each element in the list is a vector of of indices corresponding to the columns
 #'   of \eqn{cov.pool} that are significantly associated to each input variable (column) in \eqn{data}}
@@ -157,6 +157,8 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, blocksize=2000, apply.qval=TR
 #' (removed) from the significant confounders for each trio. Note: only used when return.for.trios==TRUE. Default = FALSE.
 #' @param filter_fdr the false discovery rate for filtering common child
 #' and intermediate confounding variable.
+#' @param adjust_by a string specifying one of 'fwer' or 'all". If 'fwer' then the qvalue adjustment is done for the family of tests
+#' corresponding to each pc with all genetic variants. If 'all' then the qvalue adjustment is applied to all marginal pvalues
 #' @param lambda the cut off points of the tuning parameter to estimate \eqn{pi_0}. Must be between 0,1. If is.null(lambda) the default
 #' passed to \eqn{adjust.q()} is \eqn{seq(0.5, max(pvalues), 0.05)}
 #' @param save.list (logical) if TRUE the output is saved as a .RData object (default = FALSE)
@@ -197,7 +199,8 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, blocksize=2000, apply.qval=TR
 
 
 get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr=0.05, filter_int_child = FALSE,
-                        filter_fdr = 0.1, lambda=NULL, save.list=FALSE, save.path="/path/to/save/location"){
+                        filter_fdr = 0.1, adjust_by = 'fwer', lambda=NULL, save.list=FALSE,
+                        save.path="/path/to/save/location"){
 
   #====================================Preprocessing====================================
   #ensure the cov pool is a dataframe
@@ -289,9 +292,37 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
 
     #get filtering qvalues and significance matrices, using filtering fdr
     #only supply the values for each covariate with the genetic variants
-    out = get.q.sig(pvalues = cor.p.mat, fdr.level = filter_fdr, lambda.seq = lambda)
-    #get the indices of covs significant with the variants
-    variant.sig = apply(out$sigmat, 1, which)
+    if(adjust_by == 'fwer'){
+      out = get.q.sig(pvalues = cor.p.mat, fdr.level = filter_fdr, lambda.seq = lambda)
+      #get the indices of covs significant with the variants
+      variant.sig = apply(out$sigmat, 1, which)
+      #store filtered covs and filtering information
+      filtered = variant.sig
+      filt.sig = out$sigmat
+      filt.q = out$qmat
+
+    }else if(adjust_by == 'all'){
+      #apply the qvalue correction to all the pvalues
+      out = adjust.q(p = c(t(cor.p.mat)), fdr = filter_fdr, lambda = lambda)
+      #restructure output into significance matrix of snps X covariates
+      sigmat = as.data.frame(matrix(out$significant, nrow = dim(cor.p.mat)[1],
+                                    ncol = dim(cor.p.mat)[2], byrow = T))
+      #restructure output into qvalue matrix of snps X covariates
+      qmat = as.data.frame(matrix(out$qval, nrow = dim(cor.p.mat)[1],
+                                  ncol = dim(cor.p.mat)[2], byrow = T))
+
+      #get the significant covs
+      variant.sig = apply(sigmat, 1, which)
+      if(length(variant.sig)==0){
+        stop("No covariates detected, Filtering not needed...stopping")
+      }
+
+      #store filtered covs and filtering info
+      filtered = variant.sig
+      filt.sig = sigmat
+      filt.q = qmat
+    }
+
 
     #get the indices of each gene pair
     gene.pair.idx = as.list(rbind.data.frame(seq1 = seq(1, dim(gene.mat)[2]-1, 2),
@@ -321,10 +352,7 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
     reg.sigmat = out.final$sigmat
     reg.qvalues = out.final$qmat
 
-    #store filtered covs and filtering information
-    filtered = variant.sig
-    filt.sig = out$sigmat
-    filt.q = out$qmat
+
 
 
 
