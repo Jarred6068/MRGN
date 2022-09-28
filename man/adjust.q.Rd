@@ -2,7 +2,7 @@
 % Please edit documentation in R/get.conf.R
 \name{adjust.q}
 \alias{adjust.q}
-\title{A wrapper function to apply the qvalue correction to a set of pvalues}
+\title{A simple function to apply the qvalue correction to a set of pvalues}
 \usage{
 adjust.q(p, fdr, lambda)
 }
@@ -17,5 +17,5 @@ adjust.q(p, fdr, lambda)
 an \eqn{n X 2} dataframe containing the qvalues, and significance (logical)
 }
 \description{
-A wrapper function to apply the qvalue correction to a set of pvalues
+A simple function to apply the qvalue correction to a set of pvalues
 }

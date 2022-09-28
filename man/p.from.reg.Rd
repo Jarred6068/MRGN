@@ -5,15 +5,15 @@
 \title{A function to perform the regression of a possible confounding pc aganst all pairs of cis and trans genes given
 in \eqn{genes}}
 \usage{
-p.from.reg(pc, genes)
+p.from.reg(inlist, cov.cols)
 }
 \arguments{
-\item{pc}{a vector of scores from a given pc (i.e a single column of \eqn{cov.pool} in \eqn{get.conf()})}
+\item{inlist}{a list of 3 elements}
 
-\item{genes}{an \eqn{n X m} dataframe of cis and trans gene pairs of trios}
+\item{cov.cols}{the column dimension of the covariate pool}
 }
 \value{
-an \eqn{1 X (m/2)} vector of pvalues from corresponding to the overall \eqn{F} of the regression
+a vector
 }
 \description{
 A function to perform the regression of a possible confounding pc aganst all pairs of cis and trans genes given
