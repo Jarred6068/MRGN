@@ -297,20 +297,22 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
     gene.pair.idx = as.list(rbind.data.frame(seq1 = seq(1, dim(gene.mat)[2]-1, 2),
                                              seq2 = seq(2, dim(gene.mat)[2], 2)))
 
-    #combine the vector of pvalues for a pc with all gene pairs with the indicators for which
-    #pvalues should be omitted in the adjustment (from variant.sig) into an iterable list
+    #create an iteratable list to be passed to the regression pvalue calculations
+    #the list combines the covariates with each gene pair and the indices of which
+    #covariates should be omitted due to filtering.
     iterate.list = lapply(as.list(1:length(variant.sig)), function(x,y,z,w,u)
       if(length(z[[x]])==0) list(z[[x]], y, w[,u[[x]]]) else list(z[[x]], y[,-z[[x]]],w[,u[[x]]]),
       y = cov.pool, z = variant.sig, w = gene.mat, u = gene.pair.idx)
 
-    #calculate the regression pvalues
+    #calculate the regression pvalues - NA's in the pvalue matrix represent omitted covariates for a given
+    #gene pair
     message("Calculating regression p-values, this step may take some time...")
     reg.pvalues=t(as.data.frame(sapply(iterate.list, function(x) p.from.reg(inlist = x,
                                                                             cov.cols = dim(cov.pool)[2]))))
 
     #=========================================Covariate-selection========================================
-    #calculate the qvalues for the regression pvalues ommitted pvalues for covs significant with the snp
-    #iterates over the vector of pvalues corresponding to each pc with all trios
+    #calculate the qvalues for the regression pvalues for covs significant with each gene pair
+    #iterates over the vector of pvalues corresponding to each pc with all trios.
     message("Selecting covariates from the filtered pool...")
     out.final = get.q.sig(reg.pvalues, fdr.level = selection_fdr,
                           lambda.seq = lambda, contains.na = any(is.na(reg.pvalues)))
@@ -329,13 +331,15 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
 
 
   }else{
-    message("Selecting covariates from the pool...")
-    #if no filtering
+    message("Calculating regression p-values, this step may take some time...")
+    #if no filtering convert columns of cov pool to elements in list
     pc.list = as.list(cov.pool)
-    p.mat=as.data.frame(sapply(pc.list, p.from.reg2, genes = gene.mat))
-    out.final = get.q.sig(pvalues = p.mat, fdr.level = selection_fdr, lambda.seq = lambda)
+    #get the regression pvalues. simpler here as there will be no omitted/NA pvalues
+    reg.pvalues=as.data.frame(sapply(pc.list, p.from.reg2, genes = gene.mat))
+    message("Selecting covariates from the pool...")
+    out.final = get.q.sig(pvalues = reg.pvalues, fdr.level = selection_fdr, lambda.seq = lambda)
+    #extract the qvalue and significance matrix
     reg.sigmat = out.final$sigmat
-    reg.pvalues = p.mat
     reg.qvalues = out.final$qmat
     #set filtering information == NULL
     filtered = NULL
@@ -348,7 +352,7 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
 
   }
 
-  #---------------------selection-of-covs---------------------
+  #===================================-Organizing-output-=============================================
   #obtain the final list of selected covs
   final.list.sig.asso.covs = apply(reg.sigmat, 1, function(x){which(x)})
 
@@ -366,16 +370,14 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
     colnames(filt.q) = colnames(filt.sig) = colnames(cor.p.mat) = colnames(cor.r.mat) = colnames(cov.pool)
   }
 
-
-
-
-
+  #organize list of info
   result.list = list(sig.asso.covs = final.list.sig.asso.covs, filtered.covs = filtered,
               reg.pvalues = reg.pvalues, reg.qvalues = reg.qvalues, reg.sig.mat = reg.sigmat,
               filtering.pvalues = cor.p.mat, filtering.correlations = cor.r.mat,
               filtering.qvalues = filt.q, filtering.sigmat = filt.sig, trio.ID = trio.names)
 
   if(save.list==TRUE){
+    #if saving true save list at path
     message(paste0("saving output at ", save.list, ".RData"))
     save(result.list, file = paste0(save.path,".RData"))
   }
