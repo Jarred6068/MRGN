@@ -220,7 +220,7 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
   }else{
     print("entered data is in df/array format...")
     triomat=trios
-    num.trios = dim(trios)/3
+    num.trios = dim(trios)[2]/3
     #get index of trios and convert to list
     trio.cols = split(cbind.data.frame(variant.idx = seq(1, dim(triomat)[2]-2, 3),
                      gene1.idx = seq(2, dim(triomat)[2]-1, 3),
