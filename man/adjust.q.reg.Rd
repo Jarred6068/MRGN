@@ -4,7 +4,7 @@
 \alias{adjust.q.reg}
 \title{A simple function to apply the qvalue correction to a set of pvalues specifically from filtered regression}
 \usage{
-adjust.q.reg(x, fdr, lambda, num.of.trios)
+adjust.q.reg(x, fdr, lambda, pi0.meth, num.of.trios)
 }
 \arguments{
 \item{x}{a two element list with the first element being a set of pvalues and the second element being
@@ -13,6 +13,8 @@ a set of indicies for pvalues to omit}
 \item{fdr}{the false discovery rate}
 
 \item{lambda}{The value of the tuning parameter to estimate \eqn{pi_0}. Must be in \eqn{[0,1)}}
+
+\item{pi0.meth}{A string specifying one of 'smoother' or 'bootstrap'. Passed to qvalue::qvalue()}
 }
 \value{
 an \eqn{n X 2} dataframe containing the qvalues, and significance (logical)

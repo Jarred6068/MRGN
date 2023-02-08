@@ -4,7 +4,7 @@
 \alias{adjust.q}
 \title{A simple function to apply the qvalue correction to a set of pvalues}
 \usage{
-adjust.q(p, fdr, lambda)
+adjust.q(p, fdr, lambda, pi0.meth)
 }
 \arguments{
 \item{p}{a vector of p.values to be passed to qvalue::qvalue()}
@@ -12,6 +12,8 @@ adjust.q(p, fdr, lambda)
 \item{fdr}{the false discovery rate}
 
 \item{lambda}{The value of the tuning parameter to estimate \eqn{pi_0}. Must be in \eqn{[0,1)}}
+
+\item{pi0.meth}{a string specifying 'smoother' or 'bootstrap'. Passed to qvalue::qvalue()}
 }
 \value{
 an \eqn{n X 2} dataframe containing the qvalues, and significance (logical)

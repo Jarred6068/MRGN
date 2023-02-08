@@ -14,6 +14,8 @@
 #' @param selection_fdr the false discovery rate (default = 0.05) for selecting confounders when apply.qval = TRUE
 #' @param lambda When apply.qval = TRUE, lambda is the set of cut off points of the tuning parameter to estimate \eqn{pi_0}. Must be between 0,1. If is.null(lambda) the default
 #' passed to \eqn{adjust.q()} is \eqn{seq(0.5, max(pvalues), 0.05)}
+#' @param pi0.method a string specifying one of 'smoother' or 'boostrap' describing the method used to estimate
+#' Pi0. Passed to qvalue::qvalue()
 #' @param alpha the test threshold for the bonferroni correacted pvalues when \eqn{apply.qval = FALSE}
 #' @param save.list (logical) if TRUE the output is saved as a .RData object (default = FALSE)
 #' @param save.path string specifying the path name of the output list to be save as a .RData structure
@@ -51,7 +53,8 @@
 
 
 get.conf.matrix=function(data=NULL, cov.pool=NULL, blocksize=2000, apply.qval=TRUE, selection_fdr=0.05,
-                         lambda=NULL, alpha=0.05, save.list=FALSE, save.path="/path/to/save/location"){
+                         lambda=NULL, pi0.method = 'smoother', alpha=0.05, save.list=FALSE,
+                         save.path="/path/to/save/location"){
 
   #====================================Preprocessing====================================
   data = as.data.frame(data)
@@ -92,7 +95,7 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, blocksize=2000, apply.qval=TR
   if(apply.qval==TRUE){
     message(paste0("Applying qvalue correction to control the FDR at ", selection_fdr))
     #qvalue correction
-    qsig.mat = apply(p.mat, 2, adjust.q, fdr = selection_fdr, lambda = lambda)
+    qsig.mat = apply(p.mat, 2, adjust.q, fdr = selection_fdr, lambda = lambda, pi0.meth = pi0.method)
     sig.mat = sapply(qsig.mat, function(x) x$significant)
     q.mat = sapply(qsig.mat, function(x) x$qvalue)
     p.adj.mat = matrix(NA, nrow = nrow(p.mat), ncol = ncol(p.mat))
@@ -161,6 +164,8 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, blocksize=2000, apply.qval=TR
 #' corresponding to each pc with all genetic variants. If 'all' then the qvalue adjustment is applied to all marginal pvalues
 #' @param lambda the cut off points of the tuning parameter to estimate \eqn{pi_0}. Must be between 0,1. If is.null(lambda) the default
 #' passed to \eqn{adjust.q()} is \eqn{seq(0.5, max(pvalues), 0.05)}
+#' @param pi0.method a string specifying one of 'smoother' or 'boostrap' describing the method used to estimate
+#' Pi0. Passed to qvalue::qvalue()
 #' @param save.list (logical) if TRUE the output is saved as a .RData object (default = FALSE)
 #' @param save.path string specifying the path name of the output
 #' @return a list of 9 elements containing:
@@ -199,8 +204,8 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, blocksize=2000, apply.qval=TR
 
 
 get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr=0.05, filter_int_child = FALSE,
-                        filter_fdr = 0.1, adjust_by = 'fwer', lambda=NULL, save.list=FALSE,
-                        save.path="/path/to/save/location"){
+                        filter_fdr = 0.1, adjust_by = 'fwer', lambda=NULL, pi0.method = 'smoother',
+                        save.list=FALSE, save.path="/path/to/save/location"){
 
   #====================================Preprocessing====================================
   #ensure the cov pool is a dataframe
@@ -293,7 +298,8 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
     #get filtering qvalues and significance matrices, using filtering fdr
     #only supply the values for each covariate with the genetic variants
     if(adjust_by == 'fwer'){
-      out = get.q.sig(pvalues = cor.p.mat, fdr.level = filter_fdr, lambda.seq = lambda)
+      out = get.q.sig(pvalues = cor.p.mat, fdr.level = filter_fdr, lambda.seq = lambda,
+                      pi0.method = pi0.method)
       #get the indices of covs significant with the variants
       variant.sig = apply(out$sigmat, 1, which)
       #store filtered covs and filtering information
@@ -303,7 +309,8 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
 
     }else if(adjust_by == 'all'){
       #apply the qvalue correction to all the pvalues
-      out = adjust.q(p = c(t(cor.p.mat)), fdr = filter_fdr, lambda = lambda)
+      out = adjust.q(p = c(t(cor.p.mat)), fdr = filter_fdr, lambda = lambda,
+                     pi0.meth = pi0.method)
       #restructure output into significance matrix of snps X covariates
       sigmat = as.data.frame(matrix(out$significant, nrow = dim(cor.p.mat)[1],
                                     ncol = dim(cor.p.mat)[2], byrow = T))
@@ -345,8 +352,8 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
     #calculate the qvalues for the regression pvalues for covs significant with each gene pair
     #iterates over the vector of pvalues corresponding to each pc with all trios.
     message("Selecting covariates from the filtered pool...")
-    out.final = get.q.sig(reg.pvalues, fdr.level = selection_fdr,
-                          lambda.seq = lambda, contains.na = any(is.na(reg.pvalues)))
+    out.final = get.q.sig(reg.pvalues, fdr.level = selection_fdr, lambda.seq = lambda, pi0.method = pi0.method,
+                          contains.na = any(is.na(reg.pvalues)))
 
     #extract the qvalues and significance matrix
     reg.sigmat = out.final$sigmat
@@ -365,7 +372,8 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
     #get the regression pvalues. simpler here as there will be no omitted/NA pvalues
     reg.pvalues=as.data.frame(sapply(pc.list, p.from.reg2, genes = gene.mat))
     message("Selecting covariates from the pool...")
-    out.final = get.q.sig(pvalues = reg.pvalues, fdr.level = selection_fdr, lambda.seq = lambda)
+    out.final = get.q.sig(pvalues = reg.pvalues, fdr.level = selection_fdr, lambda.seq = lambda,
+                          pi0.method = pi0.method)
     #extract the qvalue and significance matrix
     reg.sigmat = out.final$sigmat
     reg.qvalues = out.final$qmat
@@ -434,20 +442,21 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
 #' @param p a vector of p.values to be passed to qvalue::qvalue()
 #' @param fdr the false discovery rate
 #' @param lambda The value of the tuning parameter to estimate \eqn{pi_0}. Must be in \eqn{[0,1)}
+#' @param pi0.meth a string specifying 'smoother' or 'bootstrap'. Passed to qvalue::qvalue()
 #' @return an \eqn{n X 2} dataframe containing the qvalues, and significance (logical)
 #' @export adjust.q
 
 
 
-adjust.q=function(p, fdr, lambda){
+adjust.q=function(p, fdr, lambda, pi0.meth){
   #apply qvalue correction
   if(is.null(lambda)){
     #set the lambda seq
     lambda=seq(0.05, max(p, na.rm = T), 0.05)
 
-    qval.str=qvalue::qvalue(p, fdr.level = fdr, lambda=lambda)
+    qval.str=qvalue::qvalue(p, fdr.level = fdr, lambda=lambda, pi0.method = pi0.meth)
   }else{
-    qval.str=qvalue::qvalue(p, fdr.level = fdr, lambda=lambda)
+    qval.str=qvalue::qvalue(p, fdr.level = fdr, lambda=lambda, pi0.method = pi0.meth)
   }
   #extrac significance and qvalues and return
   sig=qval.str$significant
@@ -476,10 +485,11 @@ adjust.q=function(p, fdr, lambda){
 #' a set of indicies for pvalues to omit
 #' @param fdr the false discovery rate
 #' @param lambda The value of the tuning parameter to estimate \eqn{pi_0}. Must be in \eqn{[0,1)}
+#' @param pi0.meth A string specifying one of 'smoother' or 'bootstrap'. Passed to qvalue::qvalue()
 #' @return an \eqn{n X 2} dataframe containing the qvalues, and significance (logical)
 #' @export adjust.q.reg
 
-adjust.q.reg=function(x, fdr, lambda, num.of.trios){
+adjust.q.reg=function(x, fdr, lambda, pi0.meth, num.of.trios){
   #preallocate significance and qvalue as vectors of NAs
   which.na = which(is.na(x))
   sig.vec = rep(NA, num.of.trios)
@@ -493,13 +503,13 @@ adjust.q.reg=function(x, fdr, lambda, num.of.trios){
   if(length(which.na) == 0){
     #this block handles the case when there are no covariates that are significant with the snp
     #and we do not need to omit any of the pvalues
-    qval.str=qvalue::qvalue(x, fdr.level = fdr, lambda = lambda)
+    qval.str=qvalue::qvalue(x, fdr.level = fdr, lambda = lambda, pi0.method = pi0.meth)
     sig.vec = qval.str$significant
     q.vec=qval.str$qvalues
   }else{
     #this block handles the case when there are one of more covariates significant with the variant
     #and we wish to omit the pvalues corresponding them
-    qval.str=qvalue::qvalue(na.omit(x), fdr.level = fdr, lambda = lambda)
+    qval.str=qvalue::qvalue(na.omit(x), fdr.level = fdr, lambda = lambda, pi0.method = pi0.meth)
     #this sets omitted pvalues to NA
     sig.vec[-which.na] = qval.str$significant
     q.vec[-which.na]=qval.str$qvalues
@@ -629,17 +639,18 @@ p.from.reg2=function(pc, genes){
 #' (i.e from filtering)
 #' @param fdr.level the false discovery rate passed to adjust.q or adjust.q.reg
 #' @param lambda The value of the tuning parameter to estimate \eqn{pi_0}. Must be in \eqn{[0,1]} passed to adjust.q or adjust.q.reg
+#' @param pi0.meth A string specifying 'smoother' or 'bootstrap'. Passed to qvalue::qvalue()
 #' @return of input.type = list, then the output is a list of 2-lists containing the q values and sigificance. Else if the
 #' input.type == array, then the output is a 2-list where the first element is a matrix of qvalues and the second element is
 #' a matrix of significance determinations
 #' @export get.q.sig
 
-get.q.sig = function(pvalues, fdr.level, lambda.seq, contains.na = FALSE){
+get.q.sig = function(pvalues, fdr.level, lambda.seq, pi0.method, contains.na = FALSE){
 
   if(contains.na == FALSE){
-    adjust.out = apply(pvalues, 2, adjust.q, fdr = fdr.level, lambda = lambda.seq)
+    adjust.out = apply(pvalues, 2, adjust.q, fdr = fdr.level, lambda = lambda.seq, pi0.meth = pi0.method)
   }else{
-    adjust.out = apply(pvalues, 2, adjust.q.reg, fdr = fdr.level, lambda = lambda.seq,
+    adjust.out = apply(pvalues, 2, adjust.q.reg, fdr = fdr.level, lambda = lambda.seq, pi0.meth = pi0.method,
                        num.of.trios = dim(pvalues)[1])
   }
 

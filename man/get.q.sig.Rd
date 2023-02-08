@@ -4,7 +4,7 @@
 \alias{get.q.sig}
 \title{this function wraps adjust.q and adjust.q reg}
 \usage{
-get.q.sig(pvalues, fdr.level, lambda.seq, contains.na = FALSE)
+get.q.sig(pvalues, fdr.level, lambda.seq, pi0.method, contains.na = FALSE)
 }
 \arguments{
 \item{pvalues}{a matrix of pvalues or a list of 2-list containing the pvalues and indicies for which pvalues to exlude
@@ -13,6 +13,8 @@ get.q.sig(pvalues, fdr.level, lambda.seq, contains.na = FALSE)
 \item{fdr.level}{the false discovery rate passed to adjust.q or adjust.q.reg}
 
 \item{lambda}{The value of the tuning parameter to estimate \eqn{pi_0}. Must be in \eqn{[0,1]} passed to adjust.q or adjust.q.reg}
+
+\item{pi0.meth}{A string specifying 'smoother' or 'bootstrap'. Passed to qvalue::qvalue()}
 }
 \value{
 of input.type = list, then the output is a list of 2-lists containing the q values and sigificance. Else if the

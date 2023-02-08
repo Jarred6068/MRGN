@@ -15,6 +15,7 @@ gen.graph.skel(
   degree,
   method = "er",
   plot.graph = TRUE,
+  arrow.size = 0.2,
   neg.freq,
   conf.coef.ranges = list(K = c(0.01, 0.1), U = c(0.15, 0.5), W = c(0.15, 0.5), Z =
     c(1, 1.5))
@@ -43,6 +44,8 @@ be included for model4 and must excluded (set to zero)}
 \item{method}{passed to get.custom.graph()}
 
 \item{plot.graph}{(logical) if TRUE the graph is plotted. default = TRUE}
+
+\item{arrow.size}{a numeric value giving the desired size of the edge arrows when plot.graph == TRUE}
 
 \item{neg.freq}{the frequency of negative effects for simulated effects. passed to gen.conf.coefs()}
 

@@ -13,6 +13,7 @@ get.conf.trios(
   filter_fdr = 0.1,
   adjust_by = "fwer",
   lambda = NULL,
+  pi0.method = "smoother",
   save.list = FALSE,
   save.path = "/path/to/save/location"
 )
@@ -39,6 +40,9 @@ corresponding to each pc with all genetic variants. If 'all' then the qvalue adj
 
 \item{lambda}{the cut off points of the tuning parameter to estimate \eqn{pi_0}. Must be between 0,1. If is.null(lambda) the default
 passed to \eqn{adjust.q()} is \eqn{seq(0.5, max(pvalues), 0.05)}}
+
+\item{pi0.method}{a string specifying one of 'smoother' or 'boostrap' describing the method used to estimate
+Pi0. Passed to qvalue::qvalue()}
 
 \item{save.list}{(logical) if TRUE the output is saved as a .RData object (default = FALSE)}
 
