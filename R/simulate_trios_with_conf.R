@@ -361,6 +361,7 @@ get.custom.graph = function(Adj, b.snp, b.med, struct, conf.num.vec, number.of.T
 #' @param degree passed to get.custom.graph()
 #' @param method passed to get.custom.graph()
 #' @param plot.graph (logical) if TRUE the graph is plotted. default = TRUE
+#' @param arrow.size a numeric value giving the desired size of the edge arrows when plot.graph == TRUE
 #' @param neg.freq the frequency of negative effects for simulated effects. passed to gen.conf.coefs()
 #' @param conf.coef.ranges a list of length 4 representing the U,K,W, and Z (in that order) node effects where each list
 #' element is a vector of length 2 giving the minimum and maximum effect sizes for the given node. default values follow
@@ -405,7 +406,7 @@ get.custom.graph = function(Adj, b.snp, b.med, struct, conf.num.vec, number.of.T
 
 #creates the graph skeleton for each model: contains u, k, w, and z variables in adj.
 gen.graph.skel = function(model, b.snp, b.med, conf.num.vec, number.of.T, number.of.V, struct,
-                          degree, method = "er", plot.graph = TRUE, neg.freq,
+                          degree, method = "er", plot.graph = TRUE, arrow.size = 0.2, neg.freq,
                           conf.coef.ranges=list(K=c(0.01, 0.1), U=c(0.15,0.5), W=c(0.15,0.5), Z=c(1, 1.5))){
 
   #preallocate names
@@ -488,9 +489,9 @@ gen.graph.skel = function(model, b.snp, b.med, conf.num.vec, number.of.T, number
     if(plot.graph == TRUE){
       sub.graph.ind = 1:(number.of.V+number.of.T)
       par(mfrow = c(1,2))
-      igraph::plot.igraph(igraph.obj, layout = igraph::layout_nicely, edge.arrow.size = 0.2)
+      igraph::plot.igraph(igraph.obj, layout = igraph::layout_nicely, edge.arrow.size = arrow.size)
       igraph::plot.igraph(igraph::graph_from_adjacency_matrix(A[sub.graph.ind,sub.graph.ind]),
-                          layout = igraph::layout_nicely, edge.arrow.size = 0.2, vertex.color = "green")
+                          layout = igraph::layout_nicely, edge.arrow.size = arrow.size, vertex.color = "green")
     }
 
     return(list(adjacency = A, effects.adj = B, igraph.obj = igraph.obj))
@@ -544,9 +545,9 @@ gen.graph.skel = function(model, b.snp, b.med, conf.num.vec, number.of.T, number
   if(plot.graph == TRUE){
     sub.graph.ind = 1:3
     par(mfrow = c(1,2))
-    igraph::plot.igraph(igraph.obj, layout = igraph::layout_nicely, edge.arrow.size = 0.2)
+    igraph::plot.igraph(igraph.obj, layout = igraph::layout_nicely, edge.arrow.size = arrow.size)
     igraph::plot.igraph(igraph::graph_from_adjacency_matrix(A[sub.graph.ind,sub.graph.ind]),
-                        layout = igraph::layout_nicely, edge.arrow.size = 0.2, vertex.color = "green")
+                        layout = igraph::layout_nicely, edge.arrow.size = arrow.size, vertex.color = "green")
   }
 
   # #edit the effects matrix if a model is model4 for later use in simData.from.graph
@@ -632,6 +633,7 @@ find.parents = function(Adjacency, location){
 #' be first in the columns represented by column names K1, K2 ... etc followed by U nodes with column names U1, U2, ... etc
 #' @param sample.size a numeric value greater than 1 specifying the sample size when simulate.confs = TRUE
 #' @param plot.graph (logical) when FALSE, graph is not plotted (default is TRUE)
+#' @param ar.sz a numeric value giving the desired size of the edge arrows when plot.graph == TRUE
 #' @param conf.coef.ranges a list of length 4 representing the U,K,W, and Z (in that order) node effects where each list
 #' element is a vector of length 2 giving the minimum and maximum effect sizes for the given node. default values follow
 #' from the simulations of Yang et. al., 2017
@@ -689,16 +691,14 @@ find.parents = function(Adjacency, location){
 
 simData.from.graph = function(model, theta, b0.1, b.snp, b.med, sd.1, conf.num.vec, number.of.T, number.of.V,
                               struct, neg.freq = 0.5, degree = 2, method = "er", simulate.confs = TRUE,
-                              conf.mat, sample.size, plot.graph = TRUE, conf.coef.ranges=list(K=c(0.01, 0.1),
-                                                                                              U=c(0.15,0.5),
-                                                                                              W=c(0.15,0.5),
-                                                                                              Z=c(1, 1.5))){
+                              conf.mat, sample.size, plot.graph = TRUE,  ar.sz=0.2,
+                              conf.coef.ranges=list(K=c(0.01, 0.1), U=c(0.15,0.5), W=c(0.15,0.5), Z=c(1, 1.5))){
 
   #generate the graph from get.graph.skel
   graph.attr = gen.graph.skel(model = model, conf.num.vec = conf.num.vec, number.of.T = number.of.T,
                               number.of.V = number.of.V, struct = struct, plot.graph = plot.graph,
-                              conf.coef.ranges = conf.coef.ranges, b.med = b.med, b.snp = b.snp,
-                              neg.freq = neg.freq, degree = degree, method = method)
+                              arrow.size = ar.sz, conf.coef.ranges = conf.coef.ranges, b.med = b.med,
+                              b.snp = b.snp, neg.freq = neg.freq, degree = degree, method = method)
 
   # #for use of real confounders or setting sample size to simulate all confounders
    if(simulate.confs==TRUE){

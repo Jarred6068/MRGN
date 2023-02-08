@@ -22,6 +22,7 @@ simData.from.graph(
   conf.mat,
   sample.size,
   plot.graph = TRUE,
+  ar.sz = 0.2,
   conf.coef.ranges = list(K = c(0.01, 0.1), U = c(0.15, 0.5), W = c(0.15, 0.5), Z =
     c(1, 1.5))
 )
@@ -67,6 +68,8 @@ be first in the columns represented by column names K1, K2 ... etc followed by U
 \item{sample.size}{a numeric value greater than 1 specifying the sample size when simulate.confs = TRUE}
 
 \item{plot.graph}{(logical) when FALSE, graph is not plotted (default is TRUE)}
+
+\item{ar.sz}{a numeric value giving the desired size of the edge arrows when plot.graph == TRUE}
 
 \item{conf.coef.ranges}{a list of length 4 representing the U,K,W, and Z (in that order) node effects where each list
 element is a vector of length 2 giving the minimum and maximum effect sizes for the given node. default values follow
