@@ -42,7 +42,7 @@ corresponding to each pc with all genetic variants. If 'all' then the qvalue adj
 passed to \eqn{adjust.q()} is \eqn{seq(0.5, max(pvalues), 0.05)}}
 
 \item{pi0.method}{a string specifying one of 'smoother' or 'boostrap' describing the method used to estimate
-Pi0. Passed to qvalue::qvalue()}
+Pi0. Passed to qvalue::qvalue(). default = 'smoother'. Note: bootstrap' can be used in place of 'smoother' if 'smoother' fails}
 
 \item{save.list}{(logical) if TRUE the output is saved as a .RData object (default = FALSE)}
 

@@ -19,7 +19,7 @@
 #' @param lambda When apply.qval = TRUE, lambda is the set of cut off points of the tuning parameter to estimate \eqn{pi_0}. Must be between 0,1. If is.null(lambda) the default
 #' passed to \eqn{adjust.q()} is \eqn{seq(0.5, max(pvalues), 0.05)}
 #' @param pi0.method a string specifying one of 'smoother' or 'boostrap' describing the method used to estimate
-#' Pi0. Passed to qvalue::qvalue()
+#' Pi0. Passed to qvalue::qvalue(). default = 'smoother'. Note: bootstrap' can be used in place of 'smoother' if 'smoother' fails
 #' @param alpha the test threshold for the bonferroni correacted pvalues when \eqn{apply.qval = FALSE}
 #' @param save.list (logical) if TRUE the output is saved as a .RData object (default = FALSE)
 #' @param save.path string specifying the path name of the output list to be save as a .RData structure
@@ -162,7 +162,7 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, measure = c('correlation','pa
   #find the covs that correlated with every column of the trio matrix
   message("Selecting significant covariates...")
   #extract significant covariates:
-  sig.asso.covs=apply(sig.mat, 1, function(x){which(x)})
+  sig.asso.covs=apply(sig.mat, 2, function(x){which(x)})
 
 
   #=================================Organize and return/save output====================================
@@ -215,7 +215,7 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, measure = c('correlation','pa
 #' @param lambda the cut off points of the tuning parameter to estimate \eqn{pi_0}. Must be between 0,1. If is.null(lambda) the default
 #' passed to \eqn{adjust.q()} is \eqn{seq(0.5, max(pvalues), 0.05)}
 #' @param pi0.method a string specifying one of 'smoother' or 'boostrap' describing the method used to estimate
-#' Pi0. Passed to qvalue::qvalue()
+#' Pi0. Passed to qvalue::qvalue(). default = 'smoother'. Note: bootstrap' can be used in place of 'smoother' if 'smoother' fails
 #' @param save.list (logical) if TRUE the output is saved as a .RData object (default = FALSE)
 #' @param save.path string specifying the path name of the output
 #' @return a list of 9 elements containing:

@@ -39,7 +39,7 @@ and the columns of \eqn{trios}. If \eqn{FALSE}, the Bonferroni correction is app
 passed to \eqn{adjust.q()} is \eqn{seq(0.5, max(pvalues), 0.05)}}
 
 \item{pi0.method}{a string specifying one of 'smoother' or 'boostrap' describing the method used to estimate
-Pi0. Passed to qvalue::qvalue()}
+Pi0. Passed to qvalue::qvalue(). default = 'smoother'. Note: bootstrap' can be used in place of 'smoother' if 'smoother' fails}
 
 \item{alpha}{the test threshold for the bonferroni correacted pvalues when \eqn{apply.qval = FALSE}}
 
