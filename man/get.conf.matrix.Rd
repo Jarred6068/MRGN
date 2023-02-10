@@ -7,6 +7,7 @@
 get.conf.matrix(
   data = NULL,
   cov.pool = NULL,
+  measure = c("correlation", "partial_corr"),
   blocksize = 2000,
   apply.qval = TRUE,
   selection_fdr = 0.05,
@@ -21,6 +22,11 @@ get.conf.matrix(
 \item{data}{a matrix or dataframe of size \eqn{n samples X p variables}.}
 
 \item{cov.pool}{a matrix or dataframe of size \eqn{n samples X q covariates}whose columns represent the possible confounding variables to be selected from}
+
+\item{measure}{a string specifying one of 'correlation' or 'partial_corr'. If 'correlation', then the marginal dependence between each element in
+data and cov.pool is tested by pearson correlation. If 'partial_corr', the conditional dependence of each column of data is with each column of cov.pool is
+tested by conditioning on all other variables using pearson partial correlation test. Note that partial_corr is not possible if the sample size
+is less than the combined column dimensions of data and cov.pool.}
 
 \item{blocksize}{the number of columns of \eqn{data} to use in each block of correlation calculations passed to propagate::bigcor}
 
@@ -48,7 +54,7 @@ a list of 6 elements containing:
 of \eqn{cov.pool} that are significantly associated to each input variable (column) in \eqn{data}}
 \item{pvalues}{a matrix of dimension \eqn{ncol(cov.pool) X ncol(data)} of the pvalues from the pearson correlation test on each set of correlations}
 \item{qvalues}{a matrix of dimension \eqn{ncol(cov.pool) X ncol(data)} of qvalues from each set of correlations}
-\item{cors}{the matrix of the calculated pairwise correlations of dimension \eqn{ncol(cov.pool) X ncol(trios)}}
+\item{cors}{the matrix of the calculated pairwise correlations (or partial correlations) of dimension \eqn{ncol(cov.pool) X ncol(trios)}}
 \item{sig}{A matrix of logical values of dimension \eqn{ncol(cov.pool) X ncol(data)}}
 \item{adj.p}{A matrix of dimension \eqn{ncol(cov.pool) X ncol(data)} of the adjusted p-values if \eqn{apply.qval = FALSE}}
 }
@@ -66,13 +72,22 @@ organized into trios.
 #set the blocksize to be 1/3 the number of genes
 gene.confs=get.conf.matrix(data=WBgenes,
                           cov.pool=WBscores,
+                          measure = 'correlation'
                           blocksize=round((1/3)*dim(WBgenes)[2]))
 
 #fast example on a set of SNPs
 #set the blocksize to be 1/3 the number of snps
 snp.confs=get.conf.matrix(data=WBsnps,
                           cov.pool=WBscores,
+                          measure = 'correlation',
                           blocksize=round((1/3)*dim(WBsnps)[2]))
+
+
+
+#' #fast example on a set of SNPs using partial correlation test
+snp.confs=get.conf.matrix(data=WBsnps,
+                          cov.pool=WBscores,
+                          measure = 'partial_corr')
 
 }
 }

@@ -8,6 +8,10 @@
 #'
 #' @param data a matrix or dataframe of size \eqn{n samples X p variables}.
 #' @param cov.pool a matrix or dataframe of size \eqn{n samples X q covariates}whose columns represent the possible confounding variables to be selected from
+#' @param measure a string specifying one of 'correlation' or 'partial_corr'. If 'correlation', then the marginal dependence between each element in
+#' data and cov.pool is tested by pearson correlation. If 'partial_corr', the conditional dependence of each column of data is with each column of cov.pool is
+#' tested by conditioning on all other variables using pearson partial correlation test. Note that partial_corr is not possible if the sample size
+#' is less than the combined column dimensions of data and cov.pool.
 #' @param blocksize the number of columns of \eqn{data} to use in each block of correlation calculations passed to propagate::bigcor
 #' @param apply.qval (logical) \eqn{default = TRUE} applies the qvalue adjustment to each set of correlations between a PC
 #' and the columns of \eqn{trios}. If \eqn{FALSE}, the Bonferroni correction is applied.
@@ -25,7 +29,7 @@
 #'   of \eqn{cov.pool} that are significantly associated to each input variable (column) in \eqn{data}}
 #'   \item{pvalues}{a matrix of dimension \eqn{ncol(cov.pool) X ncol(data)} of the pvalues from the pearson correlation test on each set of correlations}
 #'   \item{qvalues}{a matrix of dimension \eqn{ncol(cov.pool) X ncol(data)} of qvalues from each set of correlations}
-#'   \item{cors}{the matrix of the calculated pairwise correlations of dimension \eqn{ncol(cov.pool) X ncol(trios)}}
+#'   \item{cors}{the matrix of the calculated pairwise correlations (or partial correlations) of dimension \eqn{ncol(cov.pool) X ncol(trios)}}
 #'   \item{sig}{A matrix of logical values of dimension \eqn{ncol(cov.pool) X ncol(data)}}
 #'   \item{adj.p}{A matrix of dimension \eqn{ncol(cov.pool) X ncol(data)} of the adjusted p-values if \eqn{apply.qval = FALSE}}
 #' }
@@ -41,26 +45,43 @@
 #' #set the blocksize to be 1/3 the number of genes
 #' gene.confs=get.conf.matrix(data=WBgenes,
 #'                           cov.pool=WBscores,
+#'                           measure = 'correlation'
 #'                           blocksize=round((1/3)*dim(WBgenes)[2]))
 #'
 #' #fast example on a set of SNPs
 #' #set the blocksize to be 1/3 the number of snps
 #' snp.confs=get.conf.matrix(data=WBsnps,
 #'                           cov.pool=WBscores,
+#'                           measure = 'correlation',
 #'                           blocksize=round((1/3)*dim(WBsnps)[2]))
+#'
+#'
+#'
+#'#' #fast example on a set of SNPs using partial correlation test
+#' snp.confs=get.conf.matrix(data=WBsnps,
+#'                           cov.pool=WBscores,
+#'                           measure = 'partial_corr')
 #'
 #'}
 
 
-get.conf.matrix=function(data=NULL, cov.pool=NULL, blocksize=2000, apply.qval=TRUE, selection_fdr=0.05,
-                         lambda=NULL, pi0.method = 'smoother', alpha=0.05, save.list=FALSE,
-                         save.path="/path/to/save/location"){
+get.conf.matrix=function(data=NULL, cov.pool=NULL, measure = c('correlation','partial_corr'), blocksize=2000,
+                         apply.qval=TRUE, selection_fdr=0.05, lambda=NULL, pi0.method = 'smoother',
+                         alpha=0.05, save.list=FALSE, save.path="/path/to/save/location"){
 
   #====================================Preprocessing====================================
   data = as.data.frame(data)
+  n1 = dim(data)[1]
+  p = dim(data)[2]
   cn.data = colnames(data)
   cov.pool = as.data.frame(cov.pool)
+  n2 = dim(cov.pool)[1]
+  q = dim(cov.pool)[2]
   cn.cov.pool = colnames(cov.pool)
+  #check to make sure both cov.pool and data are the same rowsize
+  if(n1 != n2){
+    stop(paste0('cov.pool and data are not the same size! data has ',n1,' samples and cov.pool has ',n2,' samples!'))
+  }
 
   #catch columns with only 2 or less non-NA values and return their indices
   non.na.vals = apply(data, 2, function(x) length(stats::na.omit(x)))
@@ -74,21 +95,43 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, blocksize=2000, apply.qval=TR
   #get the sample sizes used in each pairwise correlation calculation
   sample.sizes = apply(data, 2, function(x) length(na.omit(x)))
   #calculate the correlations of each PC with the trios
-  message(paste0("Calculating correlation matrix of size ", ncol(data), " x ", ncol(cov.pool),
-                 " using ", ceiling(dim(data)[2]/blocksize), " blocks"))
-  cormat = propagate::bigcor(data, cov.pool, verbose = T, use = "pairwise.complete.obs", size = blocksize)
+  switch(measure, correlation = {
+    message('selected measure = correlation...')
+    message(paste0("Calculating correlation matrix of size ", ncol(data), " x ", ncol(cov.pool),
+                   " using ", ceiling(dim(data)[2]/blocksize), " blocks"))
+    #correlation matrix calc
+    cormat = propagate::bigcor(data, cov.pool, verbose = T, use = "pairwise.complete.obs", size = blocksize)
+
+    #perform the pearson correlation test, apply qvalue, and return which are significant
+    pr.mat=apply(as.data.frame(cormat[,]), 2, p.from.cor, n=sample.sizes)
+    #extract the pvalues and correlations
+    r.mat = t(sapply(pr.mat, function(x) x$cor))
+    #matrix of correlation pvalues
+    p.mat = t(sapply(pr.mat, function(x) x$pvalue))
+
+    #for partial correlations:
+    }, partial_corr = {
+      message('selected measure = partial correlation')
+      all.vars = cbind.data.frame(data, cov.pool)
+      if(n1<(p+q)){
+        #check to make sure matrix is not overdetermined:
+        stop(paste0('Cannot compute partial correlation test!: samples size = ',n1,'< ',(-(p+q-2)-3),
+                    ' Consider using measure = \'correlation\' instead '))
+        }
+
+      message(paste0('Computing partial correlation matrix of size ',(p+q),' x ',(p+q),
+                   '...this step may take a few seconds...'))
+      ppout = ppcor::pcor(all.vars)$estimate[(p+1):(p+q), 1:p]
+      #perform the pearson correlation test, apply qvalue, and return which are significant
+      pr.mat=apply(ppout, 2, p.from.parcor, n=sample.sizes, S = (p+q)-2)
+      #extract the pvalues and correlations
+      r.mat = sapply(pr.mat, function(x) x$parcor)
+      #matrix of correlation pvalues
+      p.mat = sapply(pr.mat, function(x) x$pvalue)
+    }, stop('Argument \'measure\' not specified'))
+
 
   #===================================Confounder-Selection=======================================
-
-  #perform the pearson correlation test, apply qvalue, and return which are significant
-  pr.mat=apply(as.data.frame(cormat[,]), 2, p.from.cor, n=sample.sizes)
-  #extract the pvalues and correlations
-  r.mat = sapply(pr.mat, function(x) x$cor)
-  p.mat = sapply(pr.mat, function(x) x$pvalue)
-
-
-
-
 
   #-----------------apply-correction-to-pvalues-------------------
   #perform the correction
@@ -96,14 +139,20 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, blocksize=2000, apply.qval=TR
     message(paste0("Applying qvalue correction to control the FDR at ", selection_fdr))
     #qvalue correction
     qsig.mat = apply(p.mat, 2, adjust.q, fdr = selection_fdr, lambda = lambda, pi0.meth = pi0.method)
+    #significance matrix (binary matrix)
     sig.mat = sapply(qsig.mat, function(x) x$significant)
+    #qvalue matrix
     q.mat = sapply(qsig.mat, function(x) x$qvalue)
+    #empty matrix
     p.adj.mat = matrix(NA, nrow = nrow(p.mat), ncol = ncol(p.mat))
   }else{
     message(paste0("Applying bonferroni correct with threshold ", alpha))
     #bonferroni correction
+    #matrix of adjusted pvalues
     p.adj.mat = apply(p.mat, 2, stats::p.adjust, method="bonferroni")
+    #significance matrix (binary matrix)
     sig.mat = apply(p.adj.mat, 2, function(x) x<=alpha)
+    #empty matrix
     q.mat = matrix(NA, nrow = nrow(p.mat), ncol = ncol(p.mat))
   }
 
@@ -111,22 +160,23 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, blocksize=2000, apply.qval=TR
 
   #-------------------obtain-final-list-of-significant-covs----------------
   #find the covs that correlated with every column of the trio matrix
-  message("Selection significant covariates...")
+  message("Selecting significant covariates...")
+  #extract significant covariates:
   sig.asso.covs=apply(sig.mat, 1, function(x){which(x)})
 
 
   #=================================Organize and return/save output====================================
-  colnames(sig.mat)=colnames(q.mat)=colnames(r.mat)=colnames(p.mat)=colnames(p.adj.mat)=cn.cov.pool
-  row.names(sig.mat)=row.names(q.mat)=row.names(p.mat)=row.names(p.adj.mat)=cn.data
+  colnames(sig.mat)=colnames(q.mat)=colnames(r.mat)=colnames(p.mat)=colnames(p.adj.mat)=cn.data
+  row.names(sig.mat)=row.names(q.mat)=row.names(p.mat)=row.names(p.adj.mat)=cn.cov.pool
 
 
 
   out.list=list(sig.asso.covs = sig.asso.covs,
-                pvalues = t(p.mat),
-                qvalues = t(q.mat),
-                cors = t(r.mat),
-                sig = t(sig.mat),
-                adj.p = t(p.adj.mat))
+                pvalues = p.mat,
+                qvalues = q.mat,
+                cors = r.mat,
+                sig = sig.mat,
+                adj.p = p.adj.mat)
 
 
     if(save.list==TRUE){
@@ -553,6 +603,22 @@ p.from.cor=function(r, n){
 
 
 
+
+#' A function to calculate the partial correlation test pvalues using fishers z-transformation
+#'
+#' @param r either (1) a single partial correlation coefficient or (2) a vector of partial correlation coefficients
+#' @param n the sample size (if \eqn{length(r)>1} then n must be a vector of sample sizes)
+#' @param S the number of variables in the conditioning set
+#' @return an \eqn{n X 2} dataframe containing the partial correlations and pvalues
+#' @export p.from.parcor
+
+p.from.parcor=function(r, n, S){
+  #calculate z values from vector of partial correlations
+  z = (sqrt(n - S - 3)/2)*log((1 + r)/(1 - r))
+  #obtain the pvalue from two-tailed test
+  p = 2 * (1-pnorm(abs(z), lower.tail = T))
+  return(cbind.data.frame(pvalue = p, parcor = r))
+}
 
 
 

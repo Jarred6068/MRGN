@@ -16,6 +16,7 @@ gen.graph.skel(
   method = "er",
   plot.graph = TRUE,
   arrow.size = 0.2,
+  layout.graph = "nicely",
   neg.freq,
   conf.coef.ranges = list(K = c(0.01, 0.1), U = c(0.15, 0.5), W = c(0.15, 0.5), Z =
     c(1, 1.5))
@@ -47,6 +48,9 @@ be included for model4 and must excluded (set to zero)}
 
 \item{arrow.size}{a numeric value giving the desired size of the edge arrows when plot.graph == TRUE}
 
+\item{layout.graph}{a string specifying one of 'nicely' or 'as tree'. Determines the plotting structure of the graph
+when plot.graph == TRUE. default = 'nicely'. Note that 'as tree' may be better when the graph is greater than 30 nodes.}
+
 \item{neg.freq}{the frequency of negative effects for simulated effects. passed to gen.conf.coefs()}
 
 \item{conf.coef.ranges}{a list of length 4 representing the U,K,W, and Z (in that order) node effects where each list
@@ -75,7 +79,14 @@ variables (denoted Z). This function wraps gen.conf.coefs() and get.custom.graph
 adj = gen.graph.skel(model = "model1",
                      b.snp=0.8,
                      b.med=0.6,
-                     conf.num.vec = c(K = 1, U = 1, W = 1, Z = 1))
+                     plot.graph = FALSE,
+                     conf.num.vec = c(K = 1, U = 1, W = 1, Z = 1))$adjacency
+
+# now plot the graph
+plot.graph.from.adj(adj, return.igraph = FALSE)
+
+
+
 
 # generate a custom/random directed graph with 2 variants and 4 molecular phenotypes
 # and one of each type of confounding variable
@@ -96,4 +107,8 @@ X=gen.graph.skel(model = "custom",
                                        W=c(0.15,0.5),
                                        Z=c(1, 1.5)))
 }
+
+
+
+
 }
