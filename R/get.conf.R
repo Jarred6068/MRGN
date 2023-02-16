@@ -171,7 +171,7 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, measure = c('correlation','pa
       #matrix of adjusted pvalues
       p.adj.mat = apply(p.mat, 2, stats::p.adjust, method="bonferroni")
       #significance matrix (binary matrix)
-      sig.mat =
+      sig.mat = apply(p.adj.mat, 2, function(x) x<=alpha)
       #empty matrix
       q.mat = matrix(NA, nrow = nrow(p.mat), ncol = ncol(p.mat))
 
