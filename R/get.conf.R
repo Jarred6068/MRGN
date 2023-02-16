@@ -154,7 +154,7 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, measure = c('correlation','pa
       sig.mat = as.data.frame(matrix(qsig.mat$significant, nrow = nrow(p.mat),
                                     ncol = ncol(p.mat), byrow = F))
       #restructure output into qvalue matrix of snps X covariates
-      q.mat = as.data.frame(matrix(out$qval, nrow = nrow(p.mat),
+      q.mat = as.data.frame(matrix(qsig.mat$qval, nrow = nrow(p.mat),
                                   ncol = ncol(p.mat), byrow = F))
 
     }else{
