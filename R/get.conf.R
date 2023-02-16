@@ -16,6 +16,9 @@
 #' @param apply.qval (logical) \eqn{default = TRUE} applies the qvalue adjustment to each set of correlations between a PC
 #' and the columns of \eqn{trios}. If \eqn{FALSE}, the Bonferroni correction is applied.
 #' @param selection_fdr the false discovery rate (default = 0.05) for selecting confounders when apply.qval = TRUE
+#' @param adjust_by a string specifying one of 'fwer' or 'all". If 'fwer' then the qvalue adjustment is done for the family of tests
+#' corresponding to all covariates with each column of 'data'. If 'all' then the qvalue adjustment is applied to all marginal pvalues.
+#' default = 'fwer'
 #' @param lambda When apply.qval = TRUE, lambda is the set of cut off points of the tuning parameter to estimate \eqn{pi_0}. Must be between 0,1. If is.null(lambda) the default
 #' passed to \eqn{adjust.q()} is \eqn{seq(0.5, max(pvalues), 0.05)}
 #' @param pi0.method a string specifying one of 'smoother' or 'boostrap' describing the method used to estimate
@@ -57,16 +60,17 @@
 #'
 #'
 #'
-#'#' #fast example on a set of SNPs using partial correlation test
+#' #fast example on a set of SNPs using partial correlation test on
+#' #the first 50 PCs
 #' snp.confs=get.conf.matrix(data=WBsnps,
-#'                           cov.pool=WBscores,
+#'                           cov.pool=WBscores[,1:50],
 #'                           measure = 'partial_corr')
 #'
 #'}
 
 
 get.conf.matrix=function(data=NULL, cov.pool=NULL, measure = c('correlation','partial_corr'), blocksize=2000,
-                         apply.qval=TRUE, selection_fdr=0.05, lambda=NULL, pi0.method = 'smoother',
+                         apply.qval=TRUE, selection_fdr=0.05, adjust_by = 'fwer', lambda=NULL, pi0.method = 'smoother',
                          alpha=0.05, save.list=FALSE, save.path="/path/to/save/location"){
 
   #====================================Preprocessing====================================
@@ -115,7 +119,7 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, measure = c('correlation','pa
       all.vars = cbind.data.frame(data, cov.pool)
       if(n1<(p+q)){
         #check to make sure matrix is not overdetermined:
-        stop(paste0('Cannot compute partial correlation test!: samples size = ',n1,'< ',(-(p+q-2)-3),
+        stop(paste0('Cannot compute partial correlation test!: samples size = ',n1,'< ',((p+q-2)+3),
                     ' Consider using measure = \'correlation\' instead '))
         }
 
@@ -123,11 +127,11 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, measure = c('correlation','pa
                    '...this step may take a few seconds...'))
       ppout = ppcor::pcor(all.vars)$estimate[(p+1):(p+q), 1:p]
       #perform the pearson correlation test, apply qvalue, and return which are significant
-      pr.mat=apply(ppout, 2, p.from.parcor, n=sample.sizes, S = (p+q)-2)
+      pr.mat=apply(t(ppout), 2, p.from.parcor, n=sample.sizes, S = (p+q)-2)
       #extract the pvalues and correlations
-      r.mat = sapply(pr.mat, function(x) x$parcor)
+      r.mat = t(sapply(pr.mat, function(x) x$parcor))
       #matrix of correlation pvalues
-      p.mat = sapply(pr.mat, function(x) x$pvalue)
+      p.mat = t(sapply(pr.mat, function(x) x$pvalue))
     }, stop('Argument \'measure\' not specified'))
 
 
@@ -138,22 +142,52 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, measure = c('correlation','pa
   if(apply.qval==TRUE){
     message(paste0("Applying qvalue correction to control the FDR at ", selection_fdr))
     #qvalue correction
-    qsig.mat = apply(p.mat, 2, adjust.q, fdr = selection_fdr, lambda = lambda, pi0.meth = pi0.method)
-    #significance matrix (binary matrix)
-    sig.mat = sapply(qsig.mat, function(x) x$significant)
-    #qvalue matrix
-    q.mat = sapply(qsig.mat, function(x) x$qvalue)
+    if(adjust_by == 'fwer'){
+      qsig.mat = apply(p.mat, 2, adjust.q, fdr = selection_fdr, lambda = lambda, pi0.meth = pi0.method)
+      #significance matrix (binary matrix)
+      sig.mat = sapply(qsig.mat, function(x) x$significant)
+      #qvalue matrix
+      q.mat = sapply(qsig.mat, function(x) x$qvalue)
+    }else if(adjust_by == 'all'){
+      qsig.mat = adjust.q(as.vector(as.matrix(p.mat)), fdr = selection_fdr, lambda = lambda, pi0.meth = pi0.method)
+      #restructure output into significance matrix of snps X covariates
+      sig.mat = as.data.frame(matrix(qsig.mat$significant, nrow = nrow(p.mat),
+                                    ncol = ncol(p.mat), byrow = F))
+      #restructure output into qvalue matrix of snps X covariates
+      q.mat = as.data.frame(matrix(out$qval, nrow = nrow(p.mat),
+                                  ncol = ncol(p.mat), byrow = F))
+
+    }else{
+      stop(paste0('Input to argument \'adjust_by \' = ', adjust_by, ' is not recognized. use one of \'fwer\' or \' all \' '))
+    }
     #empty matrix
     p.adj.mat = matrix(NA, nrow = nrow(p.mat), ncol = ncol(p.mat))
   }else{
     message(paste0("Applying bonferroni correct with threshold ", alpha))
     #bonferroni correction
-    #matrix of adjusted pvalues
-    p.adj.mat = apply(p.mat, 2, stats::p.adjust, method="bonferroni")
-    #significance matrix (binary matrix)
-    sig.mat = apply(p.adj.mat, 2, function(x) x<=alpha)
-    #empty matrix
-    q.mat = matrix(NA, nrow = nrow(p.mat), ncol = ncol(p.mat))
+    #adjustment by columns or by all pvalues
+    if(adjust_by == 'fwer'){
+      #adjust by columns
+      #matrix of adjusted pvalues
+      p.adj.mat = apply(p.mat, 2, stats::p.adjust, method="bonferroni")
+      #significance matrix (binary matrix)
+      sig.mat =
+      #empty matrix
+      q.mat = matrix(NA, nrow = nrow(p.mat), ncol = ncol(p.mat))
+
+    }else if(adjust_by == 'all'){
+      #adjust by all pvalues
+      #matrix of adjusted pvalues
+      p.adj.mat = as.data.frame(matrix(stats::p.adjust(as.vector(as.matrix(p.mat)), method="bonferroni"),
+                                          nrow = nrow(p.mat), ncol = ncol(p.mat), byrow = F))
+      #significance matrix (binary matrix)
+      sig.mat = apply(p.adj.mat, 2, function(x) x<=alpha)
+      #empty matrix
+      q.mat = matrix(NA, nrow = nrow(p.mat), ncol = ncol(p.mat))
+
+    }else{
+      stop(paste0('Input to argument \'adjust_by \' = ', adjust_by, ' is not recognized. use one of \'fwer\' or \' all \' '))
+    }
   }
 
 

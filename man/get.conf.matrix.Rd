@@ -11,6 +11,7 @@ get.conf.matrix(
   blocksize = 2000,
   apply.qval = TRUE,
   selection_fdr = 0.05,
+  adjust_by = "fwer",
   lambda = NULL,
   pi0.method = "smoother",
   alpha = 0.05,
@@ -34,6 +35,10 @@ is less than the combined column dimensions of data and cov.pool.}
 and the columns of \eqn{trios}. If \eqn{FALSE}, the Bonferroni correction is applied.}
 
 \item{selection_fdr}{the false discovery rate (default = 0.05) for selecting confounders when apply.qval = TRUE}
+
+\item{adjust_by}{a string specifying one of 'fwer' or 'all". If 'fwer' then the qvalue adjustment is done for the family of tests
+corresponding to all covariates with each column of 'data'. If 'all' then the qvalue adjustment is applied to all marginal pvalues.
+default = 'fwer'}
 
 \item{lambda}{When apply.qval = TRUE, lambda is the set of cut off points of the tuning parameter to estimate \eqn{pi_0}. Must be between 0,1. If is.null(lambda) the default
 passed to \eqn{adjust.q()} is \eqn{seq(0.5, max(pvalues), 0.05)}}
@@ -84,9 +89,10 @@ snp.confs=get.conf.matrix(data=WBsnps,
 
 
 
-#' #fast example on a set of SNPs using partial correlation test
+#fast example on a set of SNPs using partial correlation test on
+#the first 50 PCs
 snp.confs=get.conf.matrix(data=WBsnps,
-                          cov.pool=WBscores,
+                          cov.pool=WBscores[,1:50],
                           measure = 'partial_corr')
 
 }
