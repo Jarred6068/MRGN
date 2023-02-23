@@ -3,6 +3,7 @@
 export(adjust.q)
 export(adjust.q.reg)
 export(class.vec)
+export(compute.pairwise.pcors)
 export(convert.cats)
 export(convert.truth)
 export(gen.conf.coefs)

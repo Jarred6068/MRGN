@@ -8,10 +8,12 @@
 #'
 #' @param data a matrix or dataframe of size \eqn{n samples X p variables}.
 #' @param cov.pool a matrix or dataframe of size \eqn{n samples X q covariates}whose columns represent the possible confounding variables to be selected from
-#' @param measure a string specifying one of 'correlation' or 'partial_corr'. If 'correlation', then the marginal dependence between each element in
-#' data and cov.pool is tested by pearson correlation. If 'partial_corr', the conditional dependence of each column of data is with each column of cov.pool is
-#' tested by conditioning on all other variables using pearson partial correlation test. Note that partial_corr is not possible if the sample size
-#' is less than the combined column dimensions of data and cov.pool.
+#' @param measure a string specifying one of 'correlation' or 'partial_corr'. If 'correlation', then the marginal dependence between each column in
+#' data and cov.pool is tested by pearson correlation. If 'partial_corr', the conditional dependence of each column of data and each column of cov.pool is
+#' tested after conditioning on all variables in 'conditional.vars' using pearson partial correlation test. Note that 'partial_corr' is not possible if the sample size
+#' is less than ncol(conditional.vars)+2 .
+#' @param conditional.vars a matrix or dataframe. Used when measure = 'partial_corr'. The variables for which the user wishes to use as the conditional variable(s)
+#' for each pairwise partial correlation estimate.
 #' @param blocksize the number of columns of \eqn{data} to use in each block of correlation calculations passed to propagate::bigcor
 #' @param apply.qval (logical) \eqn{default = TRUE} applies the qvalue adjustment to each set of correlations between a PC
 #' and the columns of \eqn{trios}. If \eqn{FALSE}, the Bonferroni correction is applied.
@@ -44,39 +46,34 @@
 #' @examples
 #'
 #' \dontrun{
-#' #fast example on a set of genes
+#' #fast example using 'correlation' to select confounders for Whole Blood genes
 #' #set the blocksize to be 1/3 the number of genes
-#' gene.confs=get.conf.matrix(data=WBgenes,
-#'                           cov.pool=WBscores,
-#'                           measure = 'correlation'
-#'                           blocksize=round((1/3)*dim(WBgenes)[2]))
-#'
-#' #fast example on a set of SNPs
-#' #set the blocksize to be 1/3 the number of snps
-#' snp.confs=get.conf.matrix(data=WBsnps,
-#'                           cov.pool=WBscores,
-#'                           measure = 'correlation',
-#'                           blocksize=round((1/3)*dim(WBsnps)[2]))
+#' result=get.conf.matrix(data=WBgenes,
+#'                        cov.pool=WBscores,
+#'                        measure = 'correlation'
+#'                        blocksize=round((1/3)*dim(WBgenes)[2]))
 #'
 #'
 #'
-#' #fast example on a set of SNPs using partial correlation test on
-#' #the first 50 PCs
-#' snp.confs=get.conf.matrix(data=WBsnps,
-#'                           cov.pool=WBscores[,1:50],
-#'                           measure = 'partial_corr')
+#'
+#' #fast example using 'partial_corr' to select PCs for Whole Blood genes conditioning on Whole Blood SNPs
+#' result=get.conf.matrix(data=WBgenes,
+#'                        cov.pool=WBscores,
+#'                        conditional.vars = WBsnps,
+#'                        measure = 'partial_corr')
 #'
 #'}
 
 
-get.conf.matrix=function(data=NULL, cov.pool=NULL, measure = c('correlation','partial_corr'), blocksize=2000,
-                         apply.qval=TRUE, selection_fdr=0.05, adjust_by = 'fwer', lambda=NULL, pi0.method = 'smoother',
-                         alpha=0.05, save.list=FALSE, save.path="/path/to/save/location"){
+get.conf.matrix=function(data=NULL, cov.pool=NULL, measure = c('correlation','partial_corr'), conditional.vars = NULL,
+                         blocksize=2000, apply.qval=TRUE, selection_fdr=0.05, adjust_by = 'fwer', lambda=NULL,
+                         pi0.method = 'smoother', alpha=0.05, save.list=FALSE, save.path="/path/to/save/location"){
 
   #====================================Preprocessing====================================
   data = as.data.frame(data)
   n1 = dim(data)[1]
   p = dim(data)[2]
+  cond.p = dim(conditional.vars)[2]
   cn.data = colnames(data)
   cov.pool = as.data.frame(cov.pool)
   n2 = dim(cov.pool)[1]
@@ -116,18 +113,55 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, measure = c('correlation','pa
     #for partial correlations:
     }, partial_corr = {
       message('selected measure = partial correlation')
-      all.vars = cbind.data.frame(data, cov.pool)
-      if(n1<(p+q)){
+      #catch and stop if no conditional variables are specified
+      if(is.null(conditional.vars)){
+        stop('conditional.vars is empty!')
+      }
+
+
+      #catch and stop if sample size is too small to compute pcor test
+      if(n1<(cond.p)){
         #check to make sure matrix is not overdetermined:
-        stop(paste0('Cannot compute partial correlation test!: samples size = ',n1,'< ',((p+q-2)+3),
+        stop(paste0('Cannot compute partial correlation test!: samples size = ',n1,'< ',((cond.p)+3),
                     ' Consider using measure = \'correlation\' instead '))
+      }
+
+
+      #catch and warn about NA values in the input objects
+      contains.nas = c(any(is.na(data)), any(is.na(cov.pool)), any(is.na(conditional.vars)))
+      if(any(contains.nas)){
+        object.nm = c('data', 'cov.pool', 'conditional.vars')
+        which.contain.na = object.nm[which(contains.nas)]
+        #if more than one of the objects contains NAs stop
+        if(length(which.contain.na)>1){
+          stop(paste0(paste(which.contain.na, collapse = ' and '), ' contains NAs!...stopping'))
+        }
+        #if only one contains NA's just omit the NA's and proceed
+        message(paste0(which.contain.na, ' contains NAs...omitting rows with missing values...'))
+        #determine which object has the NA's and ID which rows to omit
+        if(which(contains.nas) == 1){
+          omit = which(apply(data, 2, function(x) any(is.na(x))))
+        }else if(which(contains.nas) == 2){
+          omit = which(apply(cov.pool, 2, function(x) any(is.na(x))))
+        }else{
+          omit = which(apply(conditional.vars, 2, function(x) any(is.na(x))))
         }
 
-      message(paste0('Computing partial correlation matrix of size ',(p+q),' x ',(p+q),
-                   '...this step may take a few seconds...'))
-      ppout = ppcor::pcor(all.vars)$estimate[(p+1):(p+q), 1:p]
+        #recheck the sample size condition after omitting rows
+        if((n1 - length(omit)) < (cond.p+3)){
+          stop('After omitting rows with missing values, sample size is too small to compute partial correlation test!...stopping')
+        }
+        data.omit = data[-omit,]
+        cov.pool.omit = cov.pool[-omit,]
+        conditional.vars.omit = conditional.vars[-omit,]
+        message('Computing pairwise partial correlations...this step may take a few seconds...')
+        ppout = compute.pairwise.pcors(data = data, confs = cov.pool, cond.vars = conditional.vars)
+      }else{
+        message('Computing pairwise partial correlations...this step may take a few seconds...')
+        ppout = compute.pairwise.pcors(data = data, confs = cov.pool, cond.vars = conditional.vars)
+      }
       #perform the pearson correlation test, apply qvalue, and return which are significant
-      pr.mat=apply(t(ppout), 2, p.from.parcor, n=sample.sizes, S = (p+q)-2)
+      pr.mat=apply(t(ppout), 2, p.from.parcor, n=sample.sizes, S = cond.p)
       #extract the pvalues and correlations
       r.mat = t(sapply(pr.mat, function(x) x$parcor))
       #matrix of correlation pvalues
@@ -633,8 +667,30 @@ p.from.cor=function(r, n){
 }
 
 
+#' A function to calculate the pairwise partial correlations between variables in data and confounders in cov.pool
+#' conditioned on the variables in cond.vars
+#'
+#' @param data a matrix or dataframe of variables for which to select confounders
+#' @param confs a matrix or dataframe of covariates representing potential confounders
+#' @param conf.vars a matrix or dataframe of variables on which to condition each pairwise relationship
+#' @return a matrix of size ncol(confs) x ncol(data) of partial correlations
+#' @export compute.pairwise.pcors
 
+compute.pairwise.pcors = function(data, confs, cond.vars){
+  #get dimensions
+  p = ncol(data)
+  u = ncol(confs)
+  z = ncol(cond.vars)
+  #create an iterable object for parallelization
+  iterable = expand.grid(Uvars = c(1:u), Pvars = c(1:p))
+  #compute all pairwise pcors
+  pcor.mat = apply(iterable, 1, function(x,p,u,z) ppcor::pcor(cbind(u[,x[1]], p[,x[2]], z))$estimate[1,2],
+                   p = data, u = confs, z = cond.vars)
+  #reshape output into an array
+  pcor.final = as.data.frame(matrix(pcor.mat, nrow = p, ncol = u, byrow = T))
+  return(t(pcor.final))
 
+}
 
 
 

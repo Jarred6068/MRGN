@@ -8,6 +8,7 @@ get.conf.matrix(
   data = NULL,
   cov.pool = NULL,
   measure = c("correlation", "partial_corr"),
+  conditional.vars = NULL,
   blocksize = 2000,
   apply.qval = TRUE,
   selection_fdr = 0.05,
@@ -24,10 +25,13 @@ get.conf.matrix(
 
 \item{cov.pool}{a matrix or dataframe of size \eqn{n samples X q covariates}whose columns represent the possible confounding variables to be selected from}
 
-\item{measure}{a string specifying one of 'correlation' or 'partial_corr'. If 'correlation', then the marginal dependence between each element in
-data and cov.pool is tested by pearson correlation. If 'partial_corr', the conditional dependence of each column of data is with each column of cov.pool is
-tested by conditioning on all other variables using pearson partial correlation test. Note that partial_corr is not possible if the sample size
-is less than the combined column dimensions of data and cov.pool.}
+\item{measure}{a string specifying one of 'correlation' or 'partial_corr'. If 'correlation', then the marginal dependence between each column in
+data and cov.pool is tested by pearson correlation. If 'partial_corr', the conditional dependence of each column of data and each column of cov.pool is
+tested after conditioning on all variables in 'conditional.vars' using pearson partial correlation test. Note that 'partial_corr' is not possible if the sample size
+is less than ncol(conditional.vars)+2 .}
+
+\item{conditional.vars}{a matrix or dataframe. Used when measure = 'partial_corr'. The variables for which the user wishes to use as the conditional variable(s)
+for each pairwise partial correlation estimate.}
 
 \item{blocksize}{the number of columns of \eqn{data} to use in each block of correlation calculations passed to propagate::bigcor}
 
@@ -73,27 +77,21 @@ organized into trios.
 \examples{
 
 \dontrun{
-#fast example on a set of genes
+#fast example using 'correlation' to select confounders for Whole Blood genes
 #set the blocksize to be 1/3 the number of genes
-gene.confs=get.conf.matrix(data=WBgenes,
-                          cov.pool=WBscores,
-                          measure = 'correlation'
-                          blocksize=round((1/3)*dim(WBgenes)[2]))
-
-#fast example on a set of SNPs
-#set the blocksize to be 1/3 the number of snps
-snp.confs=get.conf.matrix(data=WBsnps,
-                          cov.pool=WBscores,
-                          measure = 'correlation',
-                          blocksize=round((1/3)*dim(WBsnps)[2]))
+result=get.conf.matrix(data=WBgenes,
+                       cov.pool=WBscores,
+                       measure = 'correlation'
+                       blocksize=round((1/3)*dim(WBgenes)[2]))
 
 
 
-#fast example on a set of SNPs using partial correlation test on
-#the first 50 PCs
-snp.confs=get.conf.matrix(data=WBsnps,
-                          cov.pool=WBscores[,1:50],
-                          measure = 'partial_corr')
+
+#fast example using 'partial_corr' to select PCs for Whole Blood genes conditioning on Whole Blood SNPs
+result=get.conf.matrix(data=WBgenes,
+                       cov.pool=WBscores,
+                       conditional.vars = WBsnps,
+                       measure = 'partial_corr')
 
 }
 }
