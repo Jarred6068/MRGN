@@ -140,22 +140,24 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, measure = c('correlation','pa
         message(paste0(which.contain.na, ' contains NAs...omitting rows with missing values...'))
         #determine which object has the NA's and ID which rows to omit
         if(which(contains.nas) == 1){
-          omit = which(apply(data, 2, function(x) any(is.na(x))))
+          omit = which(apply(data, 1, function(x) any(is.na(x))))
         }else if(which(contains.nas) == 2){
-          omit = which(apply(cov.pool, 2, function(x) any(is.na(x))))
+          omit = which(apply(cov.pool, 1, function(x) any(is.na(x))))
         }else{
-          omit = which(apply(conditional.vars, 2, function(x) any(is.na(x))))
+          omit = which(apply(conditional.vars, 1, function(x) any(is.na(x))))
         }
 
         #recheck the sample size condition after omitting rows
         if((n1 - length(omit)) < (cond.p+3)){
           stop('After omitting rows with missing values, sample size is too small to compute partial correlation test!...stopping')
+        }else{
+          message(paste0('Identified ', length(omit), ' rows corresponding to missing values. Omitting rows from data, cov.pool, and conditional vars...'))
         }
         data.omit = data[-omit,]
         cov.pool.omit = cov.pool[-omit,]
         conditional.vars.omit = conditional.vars[-omit,]
         message('Computing pairwise partial correlations...this step may take a few seconds...')
-        ppout = compute.pairwise.pcors(data = data, confs = cov.pool, cond.vars = conditional.vars)
+        ppout = compute.pairwise.pcors(data = data.omit, confs = cov.pool.omit, cond.vars = conditional.vars.omit)
       }else{
         message('Computing pairwise partial correlations...this step may take a few seconds...')
         ppout = compute.pairwise.pcors(data = data, confs = cov.pool, cond.vars = conditional.vars)
