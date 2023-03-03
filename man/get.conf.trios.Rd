@@ -35,8 +35,8 @@ is the first column followed by the two molecular phenotypes.}
 \item{filter_fdr}{the false discovery rate for filtering common child
 and intermediate confounding variable.}
 
-\item{adjust_by}{a string specifying one of 'fwer' or 'all". If 'fwer' then the qvalue adjustment is done for the family of tests
-corresponding to each pc with all genetic variants. If 'all' then the qvalue adjustment is applied to all marginal pvalues}
+\item{adjust_by}{a string specifying one of 'individual' or 'all". If 'individual' then the multiple comparisons adjustment is done for the set of tests corresponding
+to all covariates in \eqn{cov.pool} with each column of \eqn{data}. If 'all' then the adjustment is done using all pvalues.}
 
 \item{lambda}{the cut off points of the tuning parameter to estimate \eqn{pi_0}. Must be between 0,1. If is.null(lambda) the default
 passed to \eqn{adjust.q()} is \eqn{seq(0.5, max(pvalues), 0.05)}}

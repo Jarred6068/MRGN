@@ -18,8 +18,8 @@
 #' @param apply.qval (logical) \eqn{default = TRUE} applies the qvalue adjustment to each set of correlations between a PC
 #' and the columns of \eqn{trios}. If \eqn{FALSE}, the Bonferroni correction is applied.
 #' @param selection_fdr the false discovery rate (default = 0.05) for selecting confounders when apply.qval = TRUE
-#' @param adjust_by a string specifying one of 'fwer' or 'all". If 'fwer' then the qvalue adjustment is done for the family of tests
-#' corresponding to all covariates with each column of 'data'. If 'all' then the qvalue adjustment is applied to all marginal pvalues.
+#' @param adjust_by a string specifying one of 'individual' or 'all". If 'individual' then the multiple comparisons adjustment is done for the set of tests corresponding
+#' to all covariates in \eqn{cov.pool} with each column of \eqn{data}. If 'all' then the adjustment is done using all pvalues.
 #' default = 'fwer'
 #' @param lambda When apply.qval = TRUE, lambda is the set of cut off points of the tuning parameter to estimate \eqn{pi_0}. Must be between 0,1. If is.null(lambda) the default
 #' passed to \eqn{adjust.q()} is \eqn{seq(0.5, max(pvalues), 0.05)}
@@ -280,8 +280,8 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, measure = c('correlation','pa
 #' (removed) from the significant confounders for each trio. Note: only used when return.for.trios==TRUE. Default = FALSE.
 #' @param filter_fdr the false discovery rate for filtering common child
 #' and intermediate confounding variable.
-#' @param adjust_by a string specifying one of 'fwer' or 'all". If 'fwer' then the qvalue adjustment is done for the family of tests
-#' corresponding to each pc with all genetic variants. If 'all' then the qvalue adjustment is applied to all marginal pvalues
+#' @param adjust_by a string specifying one of 'individual' or 'all". If 'individual' then the multiple comparisons adjustment is done for the set of tests corresponding
+#' to all covariates in \eqn{cov.pool} with each column of \eqn{data}. If 'all' then the adjustment is done using all pvalues.
 #' @param lambda the cut off points of the tuning parameter to estimate \eqn{pi_0}. Must be between 0,1. If is.null(lambda) the default
 #' passed to \eqn{adjust.q()} is \eqn{seq(0.5, max(pvalues), 0.05)}
 #' @param pi0.method a string specifying one of 'smoother' or 'boostrap' describing the method used to estimate

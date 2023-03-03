@@ -40,8 +40,8 @@ and the columns of \eqn{trios}. If \eqn{FALSE}, the Bonferroni correction is app
 
 \item{selection_fdr}{the false discovery rate (default = 0.05) for selecting confounders when apply.qval = TRUE}
 
-\item{adjust_by}{a string specifying one of 'fwer' or 'all". If 'fwer' then the qvalue adjustment is done for the family of tests
-corresponding to all covariates with each column of 'data'. If 'all' then the qvalue adjustment is applied to all marginal pvalues.
+\item{adjust_by}{a string specifying one of 'individual' or 'all". If 'individual' then the multiple comparisons adjustment is done for the set of tests corresponding
+to all covariates in \eqn{cov.pool} with each column of \eqn{data}. If 'all' then the adjustment is done using all pvalues.
 default = 'fwer'}
 
 \item{lambda}{When apply.qval = TRUE, lambda is the set of cut off points of the tuning parameter to estimate \eqn{pi_0}. Must be between 0,1. If is.null(lambda) the default
