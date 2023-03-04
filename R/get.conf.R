@@ -194,7 +194,7 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, measure = c('correlation','pa
                                   ncol = ncol(p.mat), byrow = F))
 
     }else{
-      stop(paste0('Input to argument \'adjust_by \' = ', adjust_by, ' is not recognized. use one of \'fwer\' or \' all \' '))
+      stop(paste0('Input to argument \'adjust_by \' = ', adjust_by, ' is not recognized. use one of \'individual\' or \' all \' '))
     }
     #empty matrix
     p.adj.mat = matrix(NA, nrow = nrow(p.mat), ncol = ncol(p.mat))
@@ -222,7 +222,7 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, measure = c('correlation','pa
       q.mat = matrix(NA, nrow = nrow(p.mat), ncol = ncol(p.mat))
 
     }else{
-      stop(paste0('Input to argument \'adjust_by \' = ', adjust_by, ' is not recognized. use one of \'fwer\' or \' all \' '))
+      stop(paste0('Input to argument \'adjust_by \' = ', adjust_by, ' is not recognized. use one of \'individual\' or \' all \' '))
     }
   }
 
@@ -448,6 +448,8 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
       filtered = variant.sig
       filt.sig = sigmat
       filt.q = qmat
+    }else{
+      stop(paste0('Input to argument \'adjust_by \' = ', adjust_by, ' is not recognized. use one of \'individual\' or \' all \' '))
     }
 
 
