@@ -66,7 +66,7 @@
 
 
 get.conf.matrix=function(data=NULL, cov.pool=NULL, measure = c('correlation','partial_corr'), conditional.vars = NULL,
-                         blocksize=2000, apply.qval=TRUE, selection_fdr=0.05, adjust_by = 'fwer', lambda=NULL,
+                         blocksize=2000, apply.qval=TRUE, selection_fdr=0.05, adjust_by = 'individual', lambda=NULL,
                          pi0.method = 'smoother', alpha=0.05, save.list=FALSE, save.path="/path/to/save/location"){
 
   #====================================Preprocessing====================================
@@ -178,7 +178,7 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, measure = c('correlation','pa
   if(apply.qval==TRUE){
     message(paste0("Applying qvalue correction to control the FDR at ", selection_fdr))
     #qvalue correction
-    if(adjust_by == 'fwer'){
+    if(adjust_by == 'individual'){
       qsig.mat = apply(p.mat, 2, adjust.q, fdr = selection_fdr, lambda = lambda, pi0.meth = pi0.method)
       #significance matrix (binary matrix)
       sig.mat = sapply(qsig.mat, function(x) x$significant)
@@ -324,7 +324,7 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, measure = c('correlation','pa
 
 
 get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr=0.05, filter_int_child = FALSE,
-                        filter_fdr = 0.1, adjust_by = 'fwer', lambda=NULL, pi0.method = 'smoother',
+                        filter_fdr = 0.1, adjust_by = 'individual', lambda=NULL, pi0.method = 'smoother',
                         save.list=FALSE, save.path="/path/to/save/location"){
 
   #====================================Preprocessing====================================
@@ -417,7 +417,7 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
 
     #get filtering qvalues and significance matrices, using filtering fdr
     #only supply the values for each covariate with the genetic variants
-    if(adjust_by == 'fwer'){
+    if(adjust_by == 'individual'){
       out = get.q.sig(pvalues = cor.p.mat, fdr.level = filter_fdr, lambda.seq = lambda,
                       pi0.method = pi0.method)
       #get the indices of covs significant with the variants
