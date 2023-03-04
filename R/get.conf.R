@@ -50,7 +50,7 @@
 #' #set the blocksize to be 1/3 the number of genes
 #' result=get.conf.matrix(data=WBgenes,
 #'                        cov.pool=WBscores,
-#'                        measure = 'correlation'
+#'                        measure = 'correlation',
 #'                        blocksize=round((1/3)*dim(WBgenes)[2]))
 #'
 #'

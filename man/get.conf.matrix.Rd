@@ -12,7 +12,7 @@ get.conf.matrix(
   blocksize = 2000,
   apply.qval = TRUE,
   selection_fdr = 0.05,
-  adjust_by = "fwer",
+  adjust_by = "individual",
   lambda = NULL,
   pi0.method = "smoother",
   alpha = 0.05,
@@ -81,7 +81,7 @@ organized into trios.
 #set the blocksize to be 1/3 the number of genes
 result=get.conf.matrix(data=WBgenes,
                        cov.pool=WBscores,
-                       measure = 'correlation'
+                       measure = 'correlation',
                        blocksize=round((1/3)*dim(WBgenes)[2]))
 
 

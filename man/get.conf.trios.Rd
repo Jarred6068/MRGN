@@ -11,7 +11,7 @@ get.conf.trios(
   selection_fdr = 0.05,
   filter_int_child = FALSE,
   filter_fdr = 0.1,
-  adjust_by = "fwer",
+  adjust_by = "individual",
   lambda = NULL,
   pi0.method = "smoother",
   save.list = FALSE,
