@@ -119,12 +119,6 @@ analyse.trio.i <- function (col.indices,
                             use.perm = TRUE, gamma = 0.05, is.CNA = FALSE,
                             alpha = 0.01, nperms = 100, half1 = FALSE, verbose = FALSE) {
 
-#  if (all(col.indices[1:3] %in% c(1, 292, 319))) {
-
- #   browser(text = "target trio", condition = NULL, expr = TRUE, skipCalls = 0L)
-
-  #}
-
   # For each trio, take the union of the confounders for the two T nodes
   conf.set.trio <- c(if (col.indices[2] <= q + p) confounders[[col.indices[2] - q]], # Take confounder index if T-node
                      if (col.indices[3] <= q + p) confounders[[col.indices[3] - q]]) # Result is NULL if I&C node
