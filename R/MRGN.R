@@ -2,10 +2,6 @@
 # Keep the function simple for now
 # Assume we know (as input) the set of confounding variables for each T node
 # Know the type of each confounding variable (actual confounder, or one of intermediate or common child variable)
-
-# Argument for fisher.cor
-# cor.mat = NULL, # correlation matrix for building the graph skeleton
-
 # Dealing with missing values ???
 
 #' @name MRGN
@@ -27,7 +23,7 @@
 
 # We have four blocks of columns in data: V, T, (I&C) and confounders
 
-# Post filtering based on marginal test ???
+# Post filtering based on marginal tests ???
 
 
 # Keep track of all added edges (directions) so that
