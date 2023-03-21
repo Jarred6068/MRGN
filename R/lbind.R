@@ -14,14 +14,14 @@
 #' user provided functions \code{FUN}. If it is certain that these arguments
 #' make sense, then setting \code{force = TRUE} allows their use.
 #'
+#' @param force logical, should additinal arguments (after \code{force}) be considered even if \code{FUN} is user-specified?
+#'
 #' @param unique logical, return as \code{j}th list element, the union of the \code{j}th elements of arguments \code{...}?
 #' Defaults to \code{TRUE}. The alternative is to concatenate all elements, with possibly duplicates returned.
 #'
 #' @param keep.element.names logical, keep the names of the elements elements that are combined?
 #' Only used when \code{unique = TRUE}, in which case setting \code{keep.element.names = TRUE}
 #' will remove duplicates but will keep the name attributes of the list elements, if any.
-#'
-#' @param force logical only
 #'
 #' @param make.vector.names logical, name the elements of the returned list?
 #' If \code{TRUE} (the default), the \code{name} attribute of the elements of the
