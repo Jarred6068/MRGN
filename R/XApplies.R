@@ -1,13 +1,12 @@
+# Internal functions
 # Apply Operations possibly using Clusters
 #
-# A set of apply-like function taking an optional cluster for parallel computing (wrapper)
+# A set of apply-like functions taking an optional cluster for parallel computing (wrapper)
 # The purpose is to just call this function without caring about the availability
 # of a cluster or not. This function calls the appropriate non-parallel or parallel function
 
-# Internal functions
-
 # Pass partout = 'matting', or 'master key', or 'skeleton key'
-# matte <=> glossy (satine' ou brillant ou luisant)
+# matte <=> glossy ('satine' ou brillant ou luisant)
 
 # Note that the argument 'cl' comes after '...', and must thus be explicitely named in a call.
 # (same for 'chunk.size')
