@@ -93,12 +93,6 @@ analyse.trio.set <- function(trio.set, nb.trios = NROW(trio.set),
            all.stats <- do.call('rbind', all.stats)
            Inferred.Model0 <- all.stats[,8]
 
-           if (all(trio.set[5,] %in% c(1, 292, 319))) {
-
-            browser(text = "target trio", condition = NULL, expr = TRUE, skipCalls = 0L)
-
-           }
-
            # Bonferroni correction
            p.adj <- stats::p.adjust(unlist(all.stats[,1:6]), method=FDRcontrol)
            p.adj <- matrix(p.adj, nrow = nb.trios, byrow = FALSE)
