@@ -78,41 +78,6 @@ enumerate.trios <- function (i = 1:q, Adj, q = length(i), p = NROW(Adj) - q,
   return(res)
 }
 
-# Parallelized version of 'enumerate.trios'
-# NO LONGER USED; DELETE
-enumerate.trios.parallel <- function (i = 1:q, Adj, q = length(i), p = NROW(Adj) - q, cl) {
-  if (!missing(i)) {
-    if (length(i) < 1)
-      stop("'i' must be a non-NULL vector of integers.")
-    i <- as.integer(unique(i))
-    if (any(c(i < 1, i > q)))
-      stop("The vector 'i' must satisfy '1 ≤ i ≤ q' element-wise.")
-  }
-
-  # Only use the upper triangular part of Adj
-  Adj[lower.tri(Adj)] <- Adj[lower.tri(t(Adj))]
-
-  # Labels (numbers) for all T-nodes
-  Tlabels <- (1 + q):(p + q)
-
-  # Wrap 'enumerate.trios.i' over 'i'
-  res <- parallel::parLapply(cl = cl,
-                             X = i,
-                             fun = enumerate.trios.i,
-                             Adj = Adj, p = p, q = q, Tlabels = Tlabels)
-
-  # Name and return the obtained list
-  Vnames <- colnames(Adj)
-  if (!is.null(Vnames)) {
-    names(res) <- Vnames[i]
-  }
-  else {
-    names(res) <- paste0('V', i)
-  }
-  return(res)
-}
-
-
 ####################################################
 # 'enumerate.trios.i' is the workhorse for 'enumerate.trios'
 enumerate.trios.i <- function (i, Adj, p, q, Tlabels) {
@@ -166,32 +131,9 @@ enumerate.trios.i <- function (i, Adj, p, q, Tlabels) {
 # A routine for 'enumerate.trios.i': form all doublets involving each a T-node
 # associated with Vi and a T-node non associated with 'Vi'
 form.doublets <- function(Tlabeli, Tlabels, Adj, p, q) {
-  # A child function for the T-node numbered 'j'
-  childfunc <- function(j) {
-    # Binary vector indicating T-nodes associated with 'Tj'
-    assoc <- Adj[j, (q+1):(q+p)]
-
-    # Eliminating T-nodes already in Tlabeli (T-nodes directly associated with 'Vi')
-    # to avoid duplicating T-nodes already accounted for in pairwise combinations
-    assoc <- assoc * (1 - Tlabeli)
-
-    # Terminate if no new association exists
-    if (sum(assoc) == 0)
-      return(NULL)
-
-    # Form doublets (columns)
-    resj <- rbind(j, Tlabels[as.logical(assoc)])
-
-    # Sort each column
-    # resj <- apply(resj, MARGIN = 2, FUN = sort) # (useful???)
-    # Guess not useful, maybe counter productive
-
-    # Return doublets involving 'Tj' (applying 'vec')
-    return(c(resj))
-  }
-
   # Get a list of doublets involving each T-node
-  res <- lapply(Tlabels[as.logical(Tlabeli)], FUN = childfunc)
+  res <- lapply(Tlabels[as.logical(Tlabeli)], FUN = form.doublets.j,
+                Tlabeli = Tlabeli, Tlabels=Tlabels, Adj=Adj, p=p, q=q)
 
   # Unlist the result
   res <- unlist(res, recursive = TRUE)
@@ -202,4 +144,28 @@ form.doublets <- function(Tlabeli, Tlabels, Adj, p, q) {
 
   # Return a matrix with zero row if no result
   return(matrix(NA, ncol = 2, nrow = 0))
+}
+
+# A child function for the T-node numbered 'j'
+form.doublets.j <- function(j, Tlabeli, Tlabels, Adj, p, q) {
+  # Binary vector indicating T-nodes associated with 'Tj'
+  assoc <- Adj[j, (q+1):(q+p)]
+
+  # Eliminating T-nodes already in Tlabeli (T-nodes directly associated with 'Vi')
+  # to avoid duplicating T-nodes already accounted for in pairwise combinations
+  assoc <- assoc * (1 - Tlabeli)
+
+  # Terminate if no new association exists
+  if (sum(assoc) == 0)
+    return(NULL)
+
+  # Form doublets (columns)
+  resj <- rbind(j, Tlabels[as.logical(assoc)])
+
+  # Sort each column
+  # resj <- apply(resj, MARGIN = 2, FUN = sort) # (useful???)
+  # Guess not useful, maybe counter productive
+
+  # Return doublets involving 'Tj' (applying 'vec')
+  return(c(resj))
 }
