@@ -24,6 +24,7 @@ Imports:
     tmvtnorm,
     ff,
     propagate,
+    ppcor,
     methods,
     Rdpack
     
