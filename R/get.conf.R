@@ -222,7 +222,7 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, measure = c('correlation','pa
       q.mat = matrix(NA, nrow = nrow(p.mat), ncol = ncol(p.mat))
 
     }else{
-      stop(paste0('Input to argument \'adjust_by \' = ', adjust_by, ' is not recognized. use one of \'individual\' or \' all \' '))
+      stop(paste0('Input to argument \'adjust_by \' = ', adjust_by, ' is not recognized. use one of \'fwer\' or \' all \' '))
     }
   }
 
