@@ -4,7 +4,7 @@
 \alias{get.freq}
 \title{A function to calculate the minor allele frequency}
 \usage{
-get.freq(V = NULL)
+get.freq(V = NULL, is.CNA = FALSE)
 }
 \arguments{
 \item{V}{a vector of alternative allele counts at a given eQTL}

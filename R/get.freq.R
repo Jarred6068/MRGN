@@ -12,13 +12,20 @@
 
 ####################################################################
 #function To Get Minor Variant Frequency - section 1.1 -step 2
-get.freq=function(V=NULL){
+get.freq=function(V=NULL, is.CNA = FALSE){
   #used in step 2
   #remove missing values
-  V=stats::na.omit(V)
-  #count the alternative alleles
-  alternative = sum(V)/(2*length(V))
-  reference=1-alternative
-  #return the minor allele freq.
-  return(min(alternative, reference))
+  if (isTRUE(is.CNA)){
+    counts = table(V)
+    freqs = counts/length(V)
+    return(min(freqs))
+  }else{
+    V=stats::na.omit(V)
+    #count the alternative alleles
+    alternative = sum(V)/(2*length(V))
+    reference=1-alternative
+    #return the minor allele freq.
+    return(min(alternative, reference))
+  }
+
 }

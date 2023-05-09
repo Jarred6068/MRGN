@@ -77,7 +77,7 @@ infer.trio=function(trio=NULL, use.perm = TRUE, gamma=0.05, is.CNA = FALSE, alph
 
   #check the frequency of the minor allele using get.freq()
   #step 2
-  minor=get.freq(V=trio[,1])
+  minor=get.freq(V=trio[,1], is.CNA = is.CNA)
 
   #step 2.1
   if(use.perm == TRUE & (minor<gamma | is.CNA)){

@@ -17,8 +17,10 @@ get.adj.from.class=function(model=NULL, reg.vec=NULL, cnames=NULL){
   adj=matrix(0, nrow = 3, ncol = 3)
   if(is.null(cnames)){
     colnames(adj)=c("V1","T1","T2")
+    row.names(adj)=c("V1","T1","T2")
   }else{
     colnames(adj)=cnames
+    row.names(adj)=cnames
   }
 
 

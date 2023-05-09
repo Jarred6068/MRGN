@@ -2,12 +2,16 @@
 % Please edit documentation in R/get.metrics.R
 \name{get.metrics}
 \alias{get.metrics}
-\title{A function to obtain the adjacency matrix from an inferred trio class}
+\title{A function to compute the precision and recall between two graphs}
 \usage{
 get.metrics(
-  Truth = NULL,
-  Inferred = NULL,
-  reg.vec = NULL,
+  Truth,
+  Inferred,
+  reg.vec,
+  nV = 1,
+  includeV = TRUE,
+  weight.edge.directed.present = 1,
+  weight.edge.present.only = 0.5,
   get.adj.inf = FALSE,
   get.adj.truth = FALSE
 )
@@ -15,16 +19,39 @@ get.metrics(
 \arguments{
 \item{Truth}{the true model class or adjacency matrix}
 
-\item{Inferred}{the inferred model class or adjacency matrix)}
+\item{Inferred}{the inferred model class or adjacency matrix}
 
-\item{reg.vec}{used when Inferred is from MRGN, a vector of the regression output as obtained from infer.trio()}
+\item{nV}{the number of genetic variants in the graph (default = 1 for trios, passed to MRPC::RecallPrecision)}
+
+\item{includeV}{(logical) whether to include the edges with the genetic variant V (default = TRUE, passed to MRPC::RecallPrecision)}
+
+\item{weight.edge.directed.present}{a numeric specifying the weight applied true positive edges with correct directions
+(passed to MRPC::RecallPrecision)}
+
+\item{weight.edge.present.only}{a numeric specifying the weight applied to true positive edges with incorrect directions
+(passed to MRPC::RecallPrecision)}
 
 \item{get.adj.inf}{(logical) use TRUE if inferred inputs are class labels. default = FALSE}
 
 \item{get.adj.truth}{(logical) use TRUE if truth inputs are class labels. default = FALSE}
 }
 \description{
-This function takes in a the true and inferred model classes as is returned by class.vec() or their adjacency matrices
-and the regression results from infer.trio() and returns the Precision, Recall, Specificity and False Omission Rate for
-edge-inference
+This function takes as input true and inferred model classes as is returned by class.vec() or their
+adjacency matrices. This function wraps MRGN::get.adj.from.class() and MRPC::RecallPrecision()
+}
+\examples{
+\dontrun{
+#example using model class labels as input:
+result = get.metrics(Truth = "M4", Inferred = "M3", get.adj.inf = TRUE, get.adj.truth = TRUE)
+
+print(result)
+
+#example using adjacency matrix as input
+true = get.adj.from.class('M1')
+pred = get.adj.from.class('M4')
+
+result = get.metrics(Truth = true, Inferred = pred)
+
+print(result)
+}
 }
