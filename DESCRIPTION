@@ -16,7 +16,6 @@ LazyData: true
 RdMacros: Rdpack
 Imports: 
     prodlim,
-    MRPC,
     graph,
     igraph,
     pcalg,

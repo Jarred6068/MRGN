@@ -5,7 +5,7 @@
 \title{A function to visualize the DAG from a simulated adjacency matrix. This function uses igraph to convert
 The adjacency matrix to}
 \usage{
-plot.graph.from.adj(
+\method{plot}{graph.from.adj}(
   Adj,
   return.igraph = TRUE,
   graph.layout = c("nicely", "as tree"),
