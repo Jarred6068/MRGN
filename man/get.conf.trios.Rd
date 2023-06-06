@@ -11,7 +11,8 @@ get.conf.trios(
   selection_fdr = 0.05,
   filter_int_child = FALSE,
   filter_fdr = 0.1,
-  adjust_by = "individual",
+  adjust_by = c("individual", "all", "none"),
+  alpha = 0.01,
   lambda = NULL,
   pi0.method = "smoother",
   save.list = FALSE,
@@ -35,8 +36,11 @@ is the first column followed by the two molecular phenotypes.}
 \item{filter_fdr}{the false discovery rate for filtering common child
 and intermediate confounding variable.}
 
-\item{adjust_by}{a string specifying one of 'individual' or 'all". If 'individual' then the multiple comparisons adjustment is done for the set of tests corresponding
-to all covariates in \eqn{cov.pool} with each column of \eqn{data}. If 'all' then the adjustment is done using all pvalues.}
+\item{adjust_by}{a string specifying one of 'individual', 'all', or 'none'. If 'individual' then the multiple comparisons adjustment is done for the set of tests corresponding
+to all covariates in \eqn{cov.pool} with each column of \eqn{data}. If 'all' then the adjustment is done using all pvalues.
+if 'none', the pvalues for the selecting confounders are not adjusted and taken at the threshold alpha.}
+
+\item{alpha}{the pvalue cutoff when adjust_by = 'none'. default is alpha = 0.01}
 
 \item{lambda}{the cut off points of the tuning parameter to estimate \eqn{pi_0}. Must be between 0,1. If is.null(lambda) the default
 passed to \eqn{adjust.q()} is \eqn{seq(0.5, max(pvalues), 0.05)}}
@@ -73,16 +77,18 @@ variables by removing selected confounders that are significantly associated wit
 \examples{
 
 \dontrun{
-#fast example on 40 trios
-trio.conf=get.conf.trios(trios=WBtrios[1:40],
-                         cov.pool=WBscores,
-                         blocksize=20)
-
-#fast example on 40 trios using common child and intermediate variable filtering
-trio.conf2=get.conf.trios(trios=WBtrios[1:40],
+#example 1 (no filtering, no FDR correction)
+trio.conf=get.conf.trios(trios=WBtrios,
                          cov.pool=WBscores,
                          blocksize=20,
-                         filter_int_child = TRUE)
+                         adjust_by = 'none')
+
+#example 2 (filtering of common child/intermediate variables)
+trio.conf2=get.conf.trios(trios=WBtrios,
+                         cov.pool=WBscores,
+                         blocksize=20,
+                         filter_int_child = TRUE,
+                         adjust_by = 'all')
 }
 }
 \references{

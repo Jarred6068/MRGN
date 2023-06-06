@@ -4,7 +4,14 @@
 \alias{get.q.sig}
 \title{this function wraps adjust.q and adjust.q reg}
 \usage{
-get.q.sig(pvalues, fdr.level, lambda.seq, pi0.method, contains.na = FALSE)
+get.q.sig(
+  pvalues,
+  fdr.level,
+  lambda.seq,
+  pi0.method,
+  adjustment,
+  contains.na = FALSE
+)
 }
 \arguments{
 \item{pvalues}{a matrix of pvalues or a list of 2-list containing the pvalues and indicies for which pvalues to exlude

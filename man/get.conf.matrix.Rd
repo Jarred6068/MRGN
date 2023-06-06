@@ -12,12 +12,12 @@ get.conf.matrix(
   blocksize = 2000,
   apply.qval = TRUE,
   selection_fdr = 0.05,
-  adjust_by = "individual",
+  adjust_by = c("individual", "all", "none"),
   lambda = NULL,
   pi0.method = "smoother",
-  alpha = 0.05,
+  alpha = 0.01,
   save.list = FALSE,
-  save.path = "/path/to/save/location"
+  save.path = "/path/to/location"
 )
 }
 \arguments{
@@ -40,9 +40,9 @@ and the columns of \eqn{trios}. If \eqn{FALSE}, the Bonferroni correction is app
 
 \item{selection_fdr}{the false discovery rate (default = 0.05) for selecting confounders when apply.qval = TRUE}
 
-\item{adjust_by}{a string specifying one of 'individual' or 'all". If 'individual' then the multiple comparisons adjustment is done for the set of tests corresponding
+\item{adjust_by}{a string specifying one of 'individual', 'all', or 'none'. If 'individual' then the multiple comparisons adjustment is done for the set of tests corresponding
 to all covariates in \eqn{cov.pool} with each column of \eqn{data}. If 'all' then the adjustment is done using all pvalues.
-default = 'fwer'}
+if 'none', the pvalues for the selecting confounders are not adjusted and taken at the threshold alpha.}
 
 \item{lambda}{When apply.qval = TRUE, lambda is the set of cut off points of the tuning parameter to estimate \eqn{pi_0}. Must be between 0,1. If is.null(lambda) the default
 passed to \eqn{adjust.q()} is \eqn{seq(0.5, max(pvalues), 0.05)}}
@@ -50,7 +50,7 @@ passed to \eqn{adjust.q()} is \eqn{seq(0.5, max(pvalues), 0.05)}}
 \item{pi0.method}{a string specifying one of 'smoother' or 'boostrap' describing the method used to estimate
 Pi0. Passed to qvalue::qvalue(). default = 'smoother'. Note: bootstrap' can be used in place of 'smoother' if 'smoother' fails}
 
-\item{alpha}{the test threshold for the bonferroni correacted pvalues when \eqn{apply.qval = FALSE}}
+\item{alpha}{the test threshold for adjust_by == 'none' and for the bonferroni correacted pvalues when \eqn{apply.qval = FALSE}}
 
 \item{save.list}{(logical) if TRUE the output is saved as a .RData object (default = FALSE)}
 
@@ -82,7 +82,8 @@ organized into trios.
 result=get.conf.matrix(data=WBgenes,
                        cov.pool=WBscores,
                        measure = 'correlation',
-                       blocksize=round((1/3)*dim(WBgenes)[2]))
+                       blocksize=round((1/3)*dim(WBgenes)[2]),
+                       adjust_by = 'individual')
 
 
 
@@ -91,7 +92,8 @@ result=get.conf.matrix(data=WBgenes,
 result=get.conf.matrix(data=WBgenes,
                        cov.pool=WBscores,
                        conditional.vars = WBsnps,
-                       measure = 'partial_corr')
+                       measure = 'partial_corr',
+                       adjust_by = 'all')
 
 }
 }

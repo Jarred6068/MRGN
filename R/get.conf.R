@@ -18,14 +18,14 @@
 #' @param apply.qval (logical) \eqn{default = TRUE} applies the qvalue adjustment to each set of correlations between a PC
 #' and the columns of \eqn{trios}. If \eqn{FALSE}, the Bonferroni correction is applied.
 #' @param selection_fdr the false discovery rate (default = 0.05) for selecting confounders when apply.qval = TRUE
-#' @param adjust_by a string specifying one of 'individual' or 'all". If 'individual' then the multiple comparisons adjustment is done for the set of tests corresponding
+#' @param adjust_by a string specifying one of 'individual', 'all', or 'none'. If 'individual' then the multiple comparisons adjustment is done for the set of tests corresponding
 #' to all covariates in \eqn{cov.pool} with each column of \eqn{data}. If 'all' then the adjustment is done using all pvalues.
-#' default = 'fwer'
+#' if 'none', the pvalues for the selecting confounders are not adjusted and taken at the threshold alpha.
 #' @param lambda When apply.qval = TRUE, lambda is the set of cut off points of the tuning parameter to estimate \eqn{pi_0}. Must be between 0,1. If is.null(lambda) the default
 #' passed to \eqn{adjust.q()} is \eqn{seq(0.5, max(pvalues), 0.05)}
 #' @param pi0.method a string specifying one of 'smoother' or 'boostrap' describing the method used to estimate
 #' Pi0. Passed to qvalue::qvalue(). default = 'smoother'. Note: bootstrap' can be used in place of 'smoother' if 'smoother' fails
-#' @param alpha the test threshold for the bonferroni correacted pvalues when \eqn{apply.qval = FALSE}
+#' @param alpha the test threshold for adjust_by == 'none' and for the bonferroni correacted pvalues when \eqn{apply.qval = FALSE}
 #' @param save.list (logical) if TRUE the output is saved as a .RData object (default = FALSE)
 #' @param save.path string specifying the path name of the output list to be save as a .RData structure
 #' @return a list of 6 elements containing:
@@ -51,7 +51,8 @@
 #' result=get.conf.matrix(data=WBgenes,
 #'                        cov.pool=WBscores,
 #'                        measure = 'correlation',
-#'                        blocksize=round((1/3)*dim(WBgenes)[2]))
+#'                        blocksize=round((1/3)*dim(WBgenes)[2]),
+#'                        adjust_by = 'individual')
 #'
 #'
 #'
@@ -60,14 +61,15 @@
 #' result=get.conf.matrix(data=WBgenes,
 #'                        cov.pool=WBscores,
 #'                        conditional.vars = WBsnps,
-#'                        measure = 'partial_corr')
+#'                        measure = 'partial_corr',
+#'                        adjust_by = 'all')
 #'
 #'}
 
 
 get.conf.matrix=function(data=NULL, cov.pool=NULL, measure = c('correlation','partial_corr'), conditional.vars = NULL,
-                         blocksize=2000, apply.qval=TRUE, selection_fdr=0.05, adjust_by = 'individual', lambda=NULL,
-                         pi0.method = 'smoother', alpha=0.05, save.list=FALSE, save.path="/path/to/save/location"){
+                         blocksize=2000, apply.qval=TRUE, selection_fdr=0.05, adjust_by = c('individual', 'all','none'),
+                         lambda=NULL, pi0.method = 'smoother', alpha=0.01, save.list=FALSE, save.path="/path/to/location"){
 
   #====================================Preprocessing====================================
   data = as.data.frame(data)
@@ -178,13 +180,13 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, measure = c('correlation','pa
   if(apply.qval==TRUE){
     message(paste0("Applying qvalue correction to control the FDR at ", selection_fdr))
     #qvalue correction
-    if(adjust_by == 'individual'){
+    switch(adjust_by, individual = {
       qsig.mat = apply(p.mat, 2, adjust.q, fdr = selection_fdr, lambda = lambda, pi0.meth = pi0.method)
       #significance matrix (binary matrix)
       sig.mat = sapply(qsig.mat, function(x) x$significant)
       #qvalue matrix
       q.mat = sapply(qsig.mat, function(x) x$qvalue)
-    }else if(adjust_by == 'all'){
+    }, all = {
       qsig.mat = adjust.q(as.vector(as.matrix(p.mat)), fdr = selection_fdr, lambda = lambda, pi0.meth = pi0.method)
       #restructure output into significance matrix of snps X covariates
       sig.mat = as.data.frame(matrix(qsig.mat$significant, nrow = nrow(p.mat),
@@ -193,16 +195,19 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, measure = c('correlation','pa
       q.mat = as.data.frame(matrix(qsig.mat$qval, nrow = nrow(p.mat),
                                   ncol = ncol(p.mat), byrow = F))
 
-    }else{
-      stop(paste0('Input to argument \'adjust_by \' = ', adjust_by, ' is not recognized. use one of \'individual\' or \' all \' '))
-    }
+    }, none = {
+      qsig.mat = q.mat = matrix(NA, nrow = nrow(p.mat), ncol = ncol(p.mat))
+      #significance matrix (binary matrix)
+      sig.mat = apply(p.mat, 2, function(x) x < alpha)
+
+    }, stop(paste0('Input to argument \'adjust_by \' = ', adjust_by, ' is not recognized. use one of \'individual\', \' all \', or \'none\' ')))
     #empty matrix
     p.adj.mat = matrix(NA, nrow = nrow(p.mat), ncol = ncol(p.mat))
   }else{
     message(paste0("Applying bonferroni correct with threshold ", alpha))
     #bonferroni correction
     #adjustment by columns or by all pvalues
-    if(adjust_by == 'fwer'){
+    switch(adjust_by, individual = {
       #adjust by columns
       #matrix of adjusted pvalues
       p.adj.mat = apply(p.mat, 2, stats::p.adjust, method="bonferroni")
@@ -211,19 +216,20 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, measure = c('correlation','pa
       #empty matrix
       q.mat = matrix(NA, nrow = nrow(p.mat), ncol = ncol(p.mat))
 
-    }else if(adjust_by == 'all'){
+    }, all = {
       #adjust by all pvalues
       #matrix of adjusted pvalues
       p.adj.mat = as.data.frame(matrix(stats::p.adjust(as.vector(as.matrix(p.mat)), method="bonferroni"),
-                                          nrow = nrow(p.mat), ncol = ncol(p.mat), byrow = F))
+                                       nrow = nrow(p.mat), ncol = ncol(p.mat), byrow = F))
       #significance matrix (binary matrix)
       sig.mat = apply(p.adj.mat, 2, function(x) x<=alpha)
       #empty matrix
       q.mat = matrix(NA, nrow = nrow(p.mat), ncol = ncol(p.mat))
 
-    }else{
-      stop(paste0('Input to argument \'adjust_by \' = ', adjust_by, ' is not recognized. use one of \'individual\' or \' all \' '))
-    }
+    }, none = {
+      p.adj.mat = q.mat = matrix(NA, nrow = nrow(p.mat), ncol = ncol(p.mat))
+      sig.mat = apply(p.mat, 2, function(x) x < alpha)
+    }, stop(paste0('Input to argument \'adjust_by \' = ', adjust_by, ' is not recognized. use one of \'individual\', \' all \', or \'none\' ')))
   }
 
 
@@ -280,8 +286,10 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, measure = c('correlation','pa
 #' (removed) from the significant confounders for each trio. Note: only used when return.for.trios==TRUE. Default = FALSE.
 #' @param filter_fdr the false discovery rate for filtering common child
 #' and intermediate confounding variable.
-#' @param adjust_by a string specifying one of 'individual' or 'all". If 'individual' then the multiple comparisons adjustment is done for the set of tests corresponding
+#' @param adjust_by a string specifying one of 'individual', 'all', or 'none'. If 'individual' then the multiple comparisons adjustment is done for the set of tests corresponding
 #' to all covariates in \eqn{cov.pool} with each column of \eqn{data}. If 'all' then the adjustment is done using all pvalues.
+#' if 'none', the pvalues for the selecting confounders are not adjusted and taken at the threshold alpha.
+#' @param alpha the pvalue cutoff when adjust_by = 'none'. default is alpha = 0.01
 #' @param lambda the cut off points of the tuning parameter to estimate \eqn{pi_0}. Must be between 0,1. If is.null(lambda) the default
 #' passed to \eqn{adjust.q()} is \eqn{seq(0.5, max(pvalues), 0.05)}
 #' @param pi0.method a string specifying one of 'smoother' or 'boostrap' describing the method used to estimate
@@ -310,22 +318,24 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, measure = c('correlation','pa
 #' @examples
 #'
 #' \dontrun{
-#' #fast example on 40 trios
-#' trio.conf=get.conf.trios(trios=WBtrios[1:40],
-#'                          cov.pool=WBscores,
-#'                          blocksize=20)
-#'
-#' #fast example on 40 trios using common child and intermediate variable filtering
-#' trio.conf2=get.conf.trios(trios=WBtrios[1:40],
+#' #example 1 (no filtering, no FDR correction)
+#' trio.conf=get.conf.trios(trios=WBtrios,
 #'                          cov.pool=WBscores,
 #'                          blocksize=20,
-#'                          filter_int_child = TRUE)
+#'                          adjust_by = 'none')
+#'
+#' #example 2 (filtering of common child/intermediate variables)
+#' trio.conf2=get.conf.trios(trios=WBtrios,
+#'                          cov.pool=WBscores,
+#'                          blocksize=20,
+#'                          filter_int_child = TRUE,
+#'                          adjust_by = 'all')
 #'}
 
 
 get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr=0.05, filter_int_child = FALSE,
-                        filter_fdr = 0.1, adjust_by = 'individual', lambda=NULL, pi0.method = 'smoother',
-                        save.list=FALSE, save.path="/path/to/save/location"){
+                        filter_fdr = 0.1, adjust_by = c('individual', 'all','none'), alpha = 0.01, lambda=NULL,
+                        pi0.method = 'smoother', save.list=FALSE, save.path="/path/to/save/location"){
 
   #====================================Preprocessing====================================
   #ensure the cov pool is a dataframe
@@ -378,7 +388,7 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
   #catch columns with only 2 or less non-NA values and return their indices
   non.na.vals = apply(triomat, 2, function(x) length(stats::na.omit(x)))
   if(any(non.na.vals<=2)){
-    stop(paste0("some columns of \"trios\" contain <= 2 non-NA values: The column(s) is/are ", paste0(which(non.na.vals<=2))))
+    stop(paste0("some columns of \"trios\" contain fewer than 2 non-NA values: The column(s) is/are ", paste0(which(non.na.vals<=2))))
   }
 
 
@@ -417,41 +427,26 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
 
     #get filtering qvalues and significance matrices, using filtering fdr
     #only supply the values for each covariate with the genetic variants
-    if(adjust_by == 'individual'){
-      out = get.q.sig(pvalues = cor.p.mat, fdr.level = filter_fdr, lambda.seq = lambda,
-                      pi0.method = pi0.method)
-      #get the indices of covs significant with the variants
-      variant.sig = apply(out$sigmat, 1, which)
-      #store filtered covs and filtering information
-      filtered = variant.sig
-      filt.sig = out$sigmat
-      filt.q = out$qmat
-
-    }else if(adjust_by == 'all'){
-      #apply the qvalue correction to all the pvalues
-      out = adjust.q(p = c(t(cor.p.mat)), fdr = filter_fdr, lambda = lambda,
-                     pi0.meth = pi0.method)
-      #restructure output into significance matrix of snps X covariates
-      sigmat = as.data.frame(matrix(out$significant, nrow = dim(cor.p.mat)[1],
-                                    ncol = dim(cor.p.mat)[2], byrow = T))
-      #restructure output into qvalue matrix of snps X covariates
-      qmat = as.data.frame(matrix(out$qval, nrow = dim(cor.p.mat)[1],
+    #apply the qvalue correction to all the pvalues
+    out = adjust.q(p = c(t(cor.p.mat)), fdr = filter_fdr, lambda = lambda,
+                   pi0.meth = pi0.method)
+    #restructure output into significance matrix of snps X covariates
+    sigmat = as.data.frame(matrix(out$significant, nrow = dim(cor.p.mat)[1],
                                   ncol = dim(cor.p.mat)[2], byrow = T))
+    #restructure output into qvalue matrix of snps X covariates
+    qmat = as.data.frame(matrix(out$qval, nrow = dim(cor.p.mat)[1],
+                                ncol = dim(cor.p.mat)[2], byrow = T))
 
-      #get the significant covs
-      variant.sig = apply(sigmat, 1, which)
-      if(length(variant.sig)==0){
-        stop("No covariates detected, Filtering not needed...stopping")
-      }
-
-      #store filtered covs and filtering info
-      filtered = variant.sig
-      filt.sig = sigmat
-      filt.q = qmat
-    }else{
-      stop(paste0('Input to argument \'adjust_by \' = ', adjust_by, ' is not recognized. use one of \'individual\' or \' all \' '))
+    #get the significant covs
+    variant.sig = apply(sigmat, 1, which)
+    if(length(variant.sig)==0){
+      stop("No common child or intermediate variables detected, Filtering not needed... stopping. Try setting \'filter_int_child = FALSE\' ")
     }
 
+    #store filtered covs and filtering info
+    filtered = variant.sig
+    filt.sig = sigmat
+    filt.q = qmat
 
     #get the indices of each gene pair
     gene.pair.idx = as.list(rbind.data.frame(seq1 = seq(1, dim(gene.mat)[2]-1, 2),
@@ -470,45 +465,45 @@ get.conf.trios=function(trios=NULL, cov.pool=NULL, blocksize=2000, selection_fdr
     reg.pvalues=t(as.data.frame(sapply(iterate.list, function(x) p.from.reg(inlist = x,
                                                                             cov.cols = dim(cov.pool)[2]))))
 
-    #=========================================Covariate-selection========================================
-    #calculate the qvalues for the regression pvalues for covs significant with each gene pair
-    #iterates over the vector of pvalues corresponding to each pc with all trios.
-    message("Selecting covariates from the filtered pool...")
-    out.final = get.q.sig(reg.pvalues, fdr.level = selection_fdr, lambda.seq = lambda, pi0.method = pi0.method,
-                          contains.na = any(is.na(reg.pvalues)))
-
-    #extract the qvalues and significance matrix
-    reg.sigmat = out.final$sigmat
-    reg.qvalues = out.final$qmat
-
-
-
-
-
-
-
   }else{
     message("Calculating regression p-values, this step may take some time...")
     #if no filtering convert columns of cov pool to elements in list
     pc.list = as.list(cov.pool)
     #get the regression pvalues. simpler here as there will be no omitted/NA pvalues
     reg.pvalues=as.data.frame(sapply(pc.list, p.from.reg2, genes = gene.mat))
-    message("Selecting covariates from the pool...")
-    out.final = get.q.sig(pvalues = reg.pvalues, fdr.level = selection_fdr, lambda.seq = lambda,
-                          pi0.method = pi0.method)
-    #extract the qvalue and significance matrix
-    reg.sigmat = out.final$sigmat
-    reg.qvalues = out.final$qmat
-    #set filtering information == NULL
     filtered = NULL
     cor.p.mat = NULL
     cor.r.mat = NULL
-    filt.q = NULL
     filt.sig = NULL
-
-
-
+    filt.q = NULL
   }
+
+  #=========================================Covariate-selection========================================
+  #calculate the qvalues for the regression pvalues for covs significant with each gene pair
+  #iterates over the vector of pvalues corresponding to each pc with all trios.
+  message("Selecting covariates from the pool...")
+  switch(adjust_by, all = {
+    out.final = get.q.sig(reg.pvalues, fdr.level = selection_fdr, lambda.seq = lambda, pi0.method = pi0.method,
+                          adjustment = 'all', contains.na = any(is.na(reg.pvalues)))
+
+    #extract the qvalues and significance matrix
+    reg.sigmat = out.final$sigmat
+    reg.qvalues = out.final$qmat
+
+  }, individual = {
+    out.final = get.q.sig(reg.pvalues, fdr.level = selection_fdr, lambda.seq = lambda, pi0.method = pi0.method,
+                          adjustment = 'individual', contains.na = any(is.na(reg.pvalues)))
+
+    #extract the qvalues and significance matrix
+    reg.sigmat = out.final$sigmat
+    reg.qvalues = out.final$qmat
+
+  }, none = {
+    #extract sig covariates by cutoff x
+    reg.sigmat = apply(reg.pvalues, 2, function(x) x < alpha)
+    reg.qvalues = as.data.frame(matrix(NA, nrow = nrow(reg.pvalues), ncol = ncol(reg.pvalues)))
+
+  }, stop(paste0('Input to argument \'adjust_by \' = ', adjust_by, ' is not recognized. use one of \'individual\', \'all\', or \'none\' ')))
 
   #===================================-Organizing-output-=============================================
   #obtain the final list of selected covs
@@ -805,19 +800,56 @@ p.from.reg2=function(pc, genes){
 #' a matrix of significance determinations
 #' @export get.q.sig
 
-get.q.sig = function(pvalues, fdr.level, lambda.seq, pi0.method, contains.na = FALSE){
+get.q.sig = function(pvalues, fdr.level, lambda.seq, pi0.method, adjustment, contains.na = FALSE){
 
   if(contains.na == FALSE){
-    adjust.out = apply(pvalues, 2, adjust.q, fdr = fdr.level, lambda = lambda.seq, pi0.meth = pi0.method)
+    #case when there are no filtered covariates and pvalues has no NA values
+    switch(adjustment, individual = {
+      adjust.out = apply(pvalues, 2, adjust.q, fdr = fdr.level, lambda = lambda.seq, pi0.meth = pi0.method)
+      #extract the qvalue and significance matrix
+      sig.mat = sapply(adjust.out, function(x) x$significant)
+      q.mat = sapply(adjust.out, function(x) x$qvalue)
+
+    }, all = {
+      #convert matrix of pvalues to vector and apply qvalue method to all pvalues
+      pval.vec = as.vector(as.matrix(pvalues))
+      adjust.out = adjust.q(pval.vec, fdr = fdr.level,
+                            lambda = lambda.seq, pi0.meth = pi0.method)
+      #extract the qvalue and significance matrix --> rshape into matrix
+      sig.mat = as.data.frame(matrix(adjust.out$significant, nrow = nrow(pvalues),
+                                     ncol = ncol(pvalues), byrow = F))
+
+      q.mat = as.data.frame(matrix(adjust.out$qvalue, nrow = nrow(pvalues),
+                                   ncol = ncol(pvalues), byrow = F))
+    })
+
   }else{
-    adjust.out = apply(pvalues, 2, adjust.q.reg, fdr = fdr.level, lambda = lambda.seq, pi0.meth = pi0.method,
-                       num.of.trios = dim(pvalues)[1])
+    #the cases when there are filtered covs from the pool and pvalues contains NA values
+    switch(adjustment, individual = {
+      #
+      adjust.out = apply(pvalues, 2, adjust.q.reg, fdr = fdr.level, lambda = lambda.seq, pi0.meth = pi0.method,
+                         num.of.trios = dim(pvalues)[1])
+
+      sig.mat = sapply(adjust.out, function(x) x$significant)
+      q.mat = sapply(adjust.out, function(x) x$qvalue)
+
+    }, all = {
+      pval.vec = as.vector(as.matrix(pvalues))
+      #convert matrix of pvalues to vector and apply qvalue method to all pvalues
+      adjust.out = adjust.q.reg(pval.vec, fdr = fdr.level, lambda = lambda.seq, pi0.meth = pi0.method,
+                         num.of.trios = length(pval.vec))
+      #extract the qvalue and significance matrix --> rshape into matrix
+      sig.mat = as.data.frame(matrix(adjust.out$significant, nrow = nrow(pvalues),
+                                     ncol = ncol(pvalues), byrow = F))
+
+      q.mat = as.data.frame(matrix(adjust.out$qvalue, nrow = nrow(pvalues),
+                                   ncol = ncol(pvalues), byrow = F))
+    })
+
   }
 
-  #extract the qvalue and significance matrix
-  cor.sig.mat = sapply(adjust.out, function(x) x$significant)
-  cor.q.mat = sapply(adjust.out, function(x) x$qvalue)
-  return(list(sigmat = cor.sig.mat, qmat = cor.q.mat))
+
+  return(list(sigmat = sig.mat, qmat = q.mat))
 }
 
 
