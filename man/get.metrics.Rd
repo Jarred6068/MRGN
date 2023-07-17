@@ -25,15 +25,22 @@ get.metrics(
 
 \item{includeV}{(logical) whether to include the edges with the genetic variant V (default = TRUE, passed to MRPC::RecallPrecision)}
 
-\item{weight.edge.directed.present}{a numeric specifying the weight applied true positive edges with correct directions
-(passed to MRPC::RecallPrecision)}
+\item{weight.edge.directed.present}{a numeric specifying the weight applied to true positive edges with correct directions
+default value is 1 (passed to MRPC::RecallPrecision)}
 
-\item{weight.edge.present.only}{a numeric specifying the weight applied to true positive edges with incorrect directions
-(passed to MRPC::RecallPrecision)}
+\item{weight.edge.present.only}{a numeric specifying the weight applied to true positive edges with incorrect directions.
+default is 0.5 (passed to MRPC::RecallPrecision)}
 
 \item{get.adj.inf}{(logical) use TRUE if inferred inputs are class labels. default = FALSE}
 
 \item{get.adj.truth}{(logical) use TRUE if truth inputs are class labels. default = FALSE}
+}
+\value{
+a named vector
+\describe{
+\item{Precision} The edge-based precision.
+\item{Recall} The edge-based recall
+}
 }
 \description{
 This function takes as input true and inferred model classes as is returned by class.vec() or their
@@ -54,4 +61,7 @@ result = get.metrics(Truth = true, Inferred = pred)
 
 print(result)
 }
+}
+\references{
+\insertRef{badsha2021mrpc}{MRGN}
 }

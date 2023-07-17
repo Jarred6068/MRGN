@@ -92,6 +92,5 @@ trio.conf2=get.conf.trios(trios=WBtrios,
 }
 }
 \references{
-\preformatted{\\insertAllCited\{\}
-}
+\insertRef{yang2017identifying}{MRGN}
 }

@@ -36,7 +36,8 @@ for each pairwise partial correlation estimate.}
 \item{blocksize}{the number of columns of \eqn{data} to use in each block of correlation calculations passed to propagate::bigcor}
 
 \item{apply.qval}{(logical) \eqn{default = TRUE} applies the qvalue adjustment to each set of correlations between a PC
-and the columns of \eqn{trios}. If \eqn{FALSE}, the Bonferroni correction is applied.}
+and the columns of \eqn{trios}. If \eqn{FALSE}, the Bonferroni correction is applied. NOTE: \eqn{adjust.by } set to 'all' or 'individal'
+for the adjustment to be applied}
 
 \item{selection_fdr}{the false discovery rate (default = 0.05) for selecting confounders when apply.qval = TRUE}
 
@@ -48,7 +49,7 @@ if 'none', the pvalues for the selecting confounders are not adjusted and taken 
 passed to \eqn{adjust.q()} is \eqn{seq(0.5, max(pvalues), 0.05)}}
 
 \item{pi0.method}{a string specifying one of 'smoother' or 'boostrap' describing the method used to estimate
-Pi0. Passed to qvalue::qvalue(). default = 'smoother'. Note: bootstrap' can be used in place of 'smoother' if 'smoother' fails}
+Pi0. Passed to qvalue::qvalue(). default = 'smoother'. NOTE: bootstrap' can be used in place of 'smoother' if 'smoother' fails}
 
 \item{alpha}{the test threshold for adjust_by == 'none' and for the bonferroni correacted pvalues when \eqn{apply.qval = FALSE}}
 
@@ -95,9 +96,5 @@ result=get.conf.matrix(data=WBgenes,
                        measure = 'partial_corr',
                        adjust_by = 'all')
 
-}
-}
-\references{
-\preformatted{\\insertAllCited\{\}
 }
 }
