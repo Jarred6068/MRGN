@@ -20,8 +20,8 @@
 #' @param get.adj.truth (logical) use TRUE if truth inputs are class labels. default = FALSE
 #' @return a named vector
 #'        \describe{
-#'        \item{Precision} The edge-based precision.
-#'        \item{Recall} The edge-based recall
+#'        \item{Precision}{The edge-based precision.}
+#'        \item{Recall}{The edge-based recall.}
 #'        }
 #' @export get.metrics
 #' @importClassesFrom graph graphNEL

@@ -38,8 +38,8 @@ default is 0.5 (passed to MRPC::RecallPrecision)}
 \value{
 a named vector
 \describe{
-\item{Precision} The edge-based precision.
-\item{Recall} The edge-based recall
+\item{Precision}{The edge-based precision.}
+\item{Recall}{The edge-based recall.}
 }
 }
 \description{

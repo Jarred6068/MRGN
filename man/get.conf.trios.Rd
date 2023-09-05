@@ -53,7 +53,7 @@ Pi0. Passed to qvalue::qvalue(). default = 'smoother'. Note: bootstrap' can be u
 \item{save.path}{string specifying the path name of the output}
 }
 \value{
-a list of 9 elements containing:
+a list of 10 elements containing:
 \describe{
 \item{sig.asso.covs}{a list of length = number of trios. each element is a set of column indices indicating selected covariates
 from \eqn{cov.pool}}
@@ -62,30 +62,36 @@ from \eqn{cov.pool}}
 \item{reg.pvalues}{a matrix of dimension \eqn{number of trios X ncol(cov.pool)} of pvalues}
 \item{reg.qvalues}{a matrix of dimension \eqn{number of trios X ncol(cov.pool)} of qvalues}
 \item{reg.sig.mat}{a logical matrix of dimension \eqn{number of trios X ncol(cov.pool)} indicating the significant qvalues from \eqn{reg.q.values}}
-\item{filtering.pvalues}{a matrix of dimension \eqn{number of trios X ncol(cov.pool)} of filtering pvalues}
-\item{filtering.correlations}{a correlation matrix of dimension \eqn{number of trios X ncol(cov.pool)} representing the correlations between the genetic variants and covariates}
-\item{filtering.qvalues}{a matrix of dimension \eqn{number of trios X ncol(cov.pool)} of filtering qvalues}
-\item{filtering.sigmat}{a logical matrix of dimension \eqn{number of trios X ncol(cov.pool)} indicating the significant qvalues from \eqn{filtering.qvalues}}
+\item{filtering.pvalues}{if \eqn{filter_in_child} = TRUE, this element is a matrix of dimension \eqn{number of trios X ncol(cov.pool)} of filtering pvalues}
+\item{filtering.correlations}{if \eqn{filter_in_child} = TRUE, this element is a correlation matrix of dimension \eqn{number of trios X ncol(cov.pool)} representing the correlations between the genetic variants and covariates}
+\item{filtering.qvalues}{if \eqn{filter_in_child} = TRUE, this element is a matrix of dimension \eqn{number of trios X ncol(cov.pool)} of filtering qvalues}
+\item{filtering.sigmat}{if \eqn{filter_in_child} = TRUE, this element is a logical matrix of dimension \eqn{number of trios X ncol(cov.pool)} indicating the significant qvalues from \eqn{filtering.qvalues}}
 }
 }
 \description{
 This function takes in a list or dataframe of trios and a matrix of potential confounding variables (e.g whole-genome expression or
 methylation PC scores) and selects the confounding variables associated with each trio using the regression-based procedure of
 \insertCite{yang2017identifying}{MRGN}. Additionally, this function allows the user to filter common child and intermediate confounding
-variables by removing selected confounders that are significantly associated with the genetic variant.
+variables by removing selected confounders that are significantly associated with the genetic variant. Note that the default setting is
+NOT to filter common child and intermediate variables. As a result, several elements in the output are empty under default settings
+(see VALUE for details)
 }
 \examples{
 
 \dontrun{
-#example 1 (no filtering, no FDR correction)
+#example 1: 100 trios from whole blood tissue (no filtering, no FDR correction)
 trio.conf=get.conf.trios(trios=WBtrios,
                          cov.pool=WBscores,
                          blocksize=20,
                          adjust_by = 'none')
 
-#example 2 (filtering of common child/intermediate variables)
-trio.conf2=get.conf.trios(trios=WBtrios,
-                         cov.pool=WBscores,
+#example 2: 100 simulated trios (filtering of common child/intermediate variables,
+#FDR correction applied to all pvalues)
+
+#Note that this example takes about 1-2 mins to run
+
+trio.conf2=get.conf.trios(trios=synTrios,
+                         cov.pool=synConfs,
                          blocksize=20,
                          filter_int_child = TRUE,
                          adjust_by = 'all')

@@ -79,6 +79,7 @@ organized into trios.
 
 \dontrun{
 #fast example using 'correlation' to select confounders for Whole Blood genes
+#with qvalue adjustment done for pvalues for each gene
 #set the blocksize to be 1/3 the number of genes
 result=get.conf.matrix(data=WBgenes,
                        cov.pool=WBscores,
@@ -89,10 +90,13 @@ result=get.conf.matrix(data=WBgenes,
 
 
 
-#fast example using 'partial_corr' to select PCs for Whole Blood genes conditioning on Whole Blood SNPs
-result=get.conf.matrix(data=WBgenes,
-                       cov.pool=WBscores,
-                       conditional.vars = WBsnps,
+#fast example using 'partial_corr' to select PCs for Whole Blood genes
+#conditioning on Whole Blood SNPs.
+Qvalue adjustment is applied to all conditional pvalues
+
+result=get.conf.matrix(data=WBgenes[,1:100],
+                       cov.pool=WBscores[,1:100],
+                       conditional.vars = WBsnps[,1:10],
                        measure = 'partial_corr',
                        adjust_by = 'all')
 

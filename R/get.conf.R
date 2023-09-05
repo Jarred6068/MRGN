@@ -47,6 +47,7 @@
 #'
 #' \dontrun{
 #' #fast example using 'correlation' to select confounders for Whole Blood genes
+#' #with qvalue adjustment done for pvalues for each gene
 #' #set the blocksize to be 1/3 the number of genes
 #' result=get.conf.matrix(data=WBgenes,
 #'                        cov.pool=WBscores,
@@ -57,10 +58,13 @@
 #'
 #'
 #'
-#' #fast example using 'partial_corr' to select PCs for Whole Blood genes conditioning on Whole Blood SNPs
-#' result=get.conf.matrix(data=WBgenes,
-#'                        cov.pool=WBscores,
-#'                        conditional.vars = WBsnps,
+#' #fast example using 'partial_corr' to select PCs for Whole Blood genes
+#' #conditioning on Whole Blood SNPs.
+#' Qvalue adjustment is applied to all conditional pvalues
+#'
+#' result=get.conf.matrix(data=WBgenes[,1:100],
+#'                        cov.pool=WBscores[,1:100],
+#'                        conditional.vars = WBsnps[,1:10],
 #'                        measure = 'partial_corr',
 #'                        adjust_by = 'all')
 #'
@@ -174,7 +178,6 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, measure = c('correlation','pa
 
 
   #===================================Confounder-Selection=======================================
-
   #-----------------apply-correction-to-pvalues-------------------
   #perform the correction
   if(apply.qval==TRUE){
@@ -274,7 +277,9 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, measure = c('correlation','pa
 #' This function takes in a list or dataframe of trios and a matrix of potential confounding variables (e.g whole-genome expression or
 #' methylation PC scores) and selects the confounding variables associated with each trio using the regression-based procedure of
 #' \insertCite{yang2017identifying}{MRGN}. Additionally, this function allows the user to filter common child and intermediate confounding
-#' variables by removing selected confounders that are significantly associated with the genetic variant.
+#' variables by removing selected confounders that are significantly associated with the genetic variant. Note that the default setting is
+#' NOT to filter common child and intermediate variables. As a result, several elements in the output are empty under default settings
+#' (see VALUE for details)
 #'
 #' @param trios either (1) a list where each element contains a dataframe corresponding to a trio or (2) a single data
 #' frame with samples in rows and trios in the columns. The assumed structure of each trio is that the Genetic variant
@@ -296,7 +301,7 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, measure = c('correlation','pa
 #' Pi0. Passed to qvalue::qvalue(). default = 'smoother'. Note: bootstrap' can be used in place of 'smoother' if 'smoother' fails
 #' @param save.list (logical) if TRUE the output is saved as a .RData object (default = FALSE)
 #' @param save.path string specifying the path name of the output
-#' @return a list of 9 elements containing:
+#' @return a list of 10 elements containing:
 #'   \describe{
 #'   \item{sig.asso.covs}{a list of length = number of trios. each element is a set of column indices indicating selected covariates
 #'   from \eqn{cov.pool}}
@@ -305,10 +310,10 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, measure = c('correlation','pa
 #'   \item{reg.pvalues}{a matrix of dimension \eqn{number of trios X ncol(cov.pool)} of pvalues}
 #'   \item{reg.qvalues}{a matrix of dimension \eqn{number of trios X ncol(cov.pool)} of qvalues}
 #'   \item{reg.sig.mat}{a logical matrix of dimension \eqn{number of trios X ncol(cov.pool)} indicating the significant qvalues from \eqn{reg.q.values}}
-#'   \item{filtering.pvalues}{a matrix of dimension \eqn{number of trios X ncol(cov.pool)} of filtering pvalues}
-#'   \item{filtering.correlations}{a correlation matrix of dimension \eqn{number of trios X ncol(cov.pool)} representing the correlations between the genetic variants and covariates}
-#'   \item{filtering.qvalues}{a matrix of dimension \eqn{number of trios X ncol(cov.pool)} of filtering qvalues}
-#'   \item{filtering.sigmat}{a logical matrix of dimension \eqn{number of trios X ncol(cov.pool)} indicating the significant qvalues from \eqn{filtering.qvalues}}
+#'   \item{filtering.pvalues}{if \eqn{filter_in_child} = TRUE, this element is a matrix of dimension \eqn{number of trios X ncol(cov.pool)} of filtering pvalues}
+#'   \item{filtering.correlations}{if \eqn{filter_in_child} = TRUE, this element is a correlation matrix of dimension \eqn{number of trios X ncol(cov.pool)} representing the correlations between the genetic variants and covariates}
+#'   \item{filtering.qvalues}{if \eqn{filter_in_child} = TRUE, this element is a matrix of dimension \eqn{number of trios X ncol(cov.pool)} of filtering qvalues}
+#'   \item{filtering.sigmat}{if \eqn{filter_in_child} = TRUE, this element is a logical matrix of dimension \eqn{number of trios X ncol(cov.pool)} indicating the significant qvalues from \eqn{filtering.qvalues}}
 #' }
 #' @export get.conf.trios
 #' @references
@@ -316,15 +321,19 @@ get.conf.matrix=function(data=NULL, cov.pool=NULL, measure = c('correlation','pa
 #' @examples
 #'
 #' \dontrun{
-#' #example 1 (no filtering, no FDR correction)
+#' #example 1: 100 trios from whole blood tissue (no filtering, no FDR correction)
 #' trio.conf=get.conf.trios(trios=WBtrios,
 #'                          cov.pool=WBscores,
 #'                          blocksize=20,
 #'                          adjust_by = 'none')
 #'
-#' #example 2 (filtering of common child/intermediate variables)
-#' trio.conf2=get.conf.trios(trios=WBtrios,
-#'                          cov.pool=WBscores,
+#' #example 2: 100 simulated trios (filtering of common child/intermediate variables,
+#' #FDR correction applied to all pvalues)
+#'
+#' #Note that this example takes about 1-2 mins to run
+#'
+#' trio.conf2=get.conf.trios(trios=synTrios,
+#'                          cov.pool=synConfs,
 #'                          blocksize=20,
 #'                          filter_int_child = TRUE,
 #'                          adjust_by = 'all')
@@ -674,18 +683,32 @@ p.from.cor=function(r, n){
 #' @export compute.pairwise.pcors
 
 compute.pairwise.pcors = function(data, confs, cond.vars){
-  #get dimensions
-  p = ncol(data)
-  u = ncol(confs)
-  z = ncol(cond.vars)
-  #create an iterable object for parallelization
-  iterable = expand.grid(Uvars = c(1:u), Pvars = c(1:p))
-  #compute all pairwise pcors
-  pcor.mat = apply(iterable, 1, function(x,p,u,z) ppcor::pcor(cbind(u[,x[1]], p[,x[2]], z))$estimate[1,2],
-                   p = data, u = confs, z = cond.vars)
-  #reshape output into an array
-  pcor.final = as.data.frame(matrix(pcor.mat, nrow = p, ncol = u, byrow = T))
-  return(t(pcor.final))
+  #catch the pseudo-inverse warning and suppress.
+  tryCatch({
+    #get dimensions
+    p = ncol(data)
+    u = ncol(confs)
+    z = ncol(cond.vars)
+    #create an iterable object for parallelization
+    iterable = expand.grid(Uvars = c(1:u), Pvars = c(1:p))
+    #compute all pairwise pcors
+    pcor.mat = apply(iterable, 1, function(x,p,u,z) ppcor::pcor(cbind(u[,x[1]], p[,x[2]], z))$estimate[1,2],
+                     p = data, u = confs, z = cond.vars)
+    #reshape output into an array
+    pcor.final = as.data.frame(matrix(pcor.mat, nrow = p, ncol = u, byrow = T))
+    return(t(pcor.final))
+  }, error = function(e) {
+    print(e)
+  }, warning = function(w) {
+    mess = names(w)
+    pat = 'The inverse of variance-covariance matrix'
+    if(grepl(pattern = pat, mess)){
+      return(t(pcor.final))
+    }else{
+      print(w)
+    }
+  })
+
 
 }
 
