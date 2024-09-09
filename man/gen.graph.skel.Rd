@@ -18,8 +18,8 @@ gen.graph.skel(
   arrow.size = 0.2,
   layout.graph = "nicely",
   neg.freq,
-  conf.coef.ranges = list(K = c(0.01, 0.1), U = c(0.15, 0.5), W = c(0.15, 0.5), Z =
-    c(1, 1.5))
+  conf.coef.ranges = list(K = c(0.01, 0.1), U = c(0.15, 0.5), W = c(0.15, 0.5), Z = c(1,
+    1.5))
 )
 }
 \arguments{
