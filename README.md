@@ -3,7 +3,7 @@
 
 # MRGN
 
-<img src="static/MRGN-logos.png" width="100%" />
+<img src="static/MRGN-logos.jpeg" width="100%" />
 <!-- badges: start --> <!-- badges: end -->
 
 The goal of MRGN is to …
