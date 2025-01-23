@@ -3,7 +3,7 @@
 
 # MRGN
 
-<img src="C:/Users/Bruin/Desktop/Research Assistantship/MRGN_logo/MRGN-logos.png" width="100%" />
+<img src="static/MRGN-logos.png" width="100%" />
 <!-- badges: start --> <!-- badges: end -->
 
 The goal of MRGN is to …
