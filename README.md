@@ -3,7 +3,7 @@
 
 # MRGNtrio: Mendelian Randomization Genomic Network for Trios
 
-![](./static/MRGN-logos.jpg)
+![](./static/MRGN-logos.jpeg)
 <!-- <img src="static/MRGN-logos.jpeg" width="50%" height="50%" /> -->
 <!-- badges: start --> <!-- badges: end -->
 
