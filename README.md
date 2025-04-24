@@ -46,7 +46,7 @@ $$ T_2 = \alpha_2 +\beta_{21}V+\beta_{22}T_1+{{\bf \Gamma}_2} {\bf U}+\epsilon_2
 
 ## Installation
 
-You can install MRGNtrio from github release with
+You can install MRGNtrio from GitHub release with
 
 ``` r
 install.packages("devtools")
