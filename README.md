@@ -7,7 +7,7 @@
 
 <p align="center">
     <img src="static/MRGN-logos.jpeg" width="60%" height="60%" />
-p/>
+</p>
 <!--  -->
 <!-- badges: start --> <!-- badges: end -->
 
