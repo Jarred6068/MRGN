@@ -1,22 +1,29 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# MRGN: Mendelian Randomization for Genomic Networks
+# MRGNtrio: Mendelian Randomization Genomic Network for Trios
 
-<img src="static/MRGN-logos.jpeg" width="50%" height="50%" />
+<!-- ![](./static/MRGN-logos.jpeg width="800" height="600" style="display: block; margin: 0 auto") -->
+
+<p align="center">
+    <img src="static/MRGN-logos.jpeg" width="60%" height="60%" />
+</p>
+<!--  -->
 <!-- badges: start --> <!-- badges: end -->
 
 
-MRGN (Mendelian Randomization for Genomic Networks) is a novel software tool designed to infer potential causal relationships between two biological variables, such as the expression of two genes or between molecular phenotypes like gene expression and DNA methylation. By utilizing a genetic variant as an instrumental variable, MRGN forms a trio that facilitates the causal inference process.
+MRGN (Mendelian Randomization for Genomic Networks) is a novel software tool designed to infer potential causal relationships between two biological variables, such as the expression of two genes or between molecular phenotypes like gene expression and DNA methylation. The software is built on the principle of Mendelian randomization, which is a robust approach to assess causality in genomic networks. MRGNtrio utilizes a genetic variant as an instrumental variable under a regression framework to infer 5 causal models for a trio. 
 
-The software is built on the principle of Mendelian randomization (MR), which is a robust approach to assess causality in genomic networks. One of the key challenges in causal inference is accounting for confounding variables, which can significantly impact the results. MRGN addresses this challenge by integrating a regression-based method that can handle a large number of confounding variables effectively.
+
+
+
+One of the key challenges in causal inference is accounting for confounding variables $\bf U$, which can significantly impact the results. MRGN addresses this challenge by integrating a regression-based method that can handle a large number of confounding variables effectively.
 
 MRGNtrio, the core component of the software, allows for the detection of diverse causal models for genomic trios using individual-level data. It offers powerful inference capabilities while maintaining computational efficiency, making it suitable for for high throughput analyses. 
 
 ## Installation
 
-You can install the development version of MRGN from
-[GitHub](https://github.com/) with:
+You can install MRGNtrio from github release with
 
 ``` r
 # install.packages("devtools")
