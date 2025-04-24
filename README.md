@@ -1,9 +1,10 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# MRGN: Mendelian Randomization for Genomic Networks
+# MRGNtrio: Mendelian Randomization Genomic Network for Trios
 
-<img src="static/MRGN-logos.jpeg" width="50%" height="50%" />
+![](static/MRGN-logos.jpg).
+<!-- <img src="static/MRGN-logos.jpeg" width="50%" height="50%" /> -->
 <!-- badges: start --> <!-- badges: end -->
 
 
@@ -15,8 +16,9 @@ MRGNtrio, the core component of the software, allows for the detection of divers
 
 ## Installation
 
-You can install the development version of MRGN from
-[GitHub](https://github.com/) with:
+current version `v1.3.7.3`
+
+You can install MRGNtrio from with
 
 ``` r
 # install.packages("devtools")
