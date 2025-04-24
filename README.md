@@ -13,7 +13,7 @@
 
 ## Overview
 
-MRGN (Mendelian Randomization for Genomic Networks) is a novel software tool designed to infer potential causal relationships between two biological variables, such as the expression of two genes or between molecular phenotypes like gene expression and DNA methylation. The software is built on the principle of Mendelian randomization, which is a robust approach to assess causality in genomic networks. MRGNtrio utilizes a genetic variant as an instrumental variable to infer 5 mutually exclusive causal models for a genomic trio. 
+MRGNtrio is a novel software tool designed to infer potential causal relationships between two biological variables, such as the expression of two genes or between molecular phenotypes like gene expression and DNA methylation. The software is built on the principle of Mendelian randomization, which is a robust approach to assess causality in genomic networks. MRGNtrio utilizes a genetic variant as an instrumental variable to infer 5 mutually exclusive causal models for a genomic trio. 
 
 <p align="center">
     <img src="static/5 causal models.drawio.png" width="60%" height="60%" />
