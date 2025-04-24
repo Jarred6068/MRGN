@@ -20,9 +20,7 @@ MRGNtrio, the core component of the software, allows for the detection of divers
 
 ## Installation
 
-current version `v1.3.7.3`
-
-You can install MRGNtrio from with
+You can install MRGNtrio from github release with
 
 ``` r
 # install.packages("devtools")
