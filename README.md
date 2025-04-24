@@ -28,7 +28,7 @@ $$ T_2 = \alpha_2 +\beta_{21}V+\beta_{22}T_1+{{\bf \Gamma}_2} {\bf U}+\epsilon_2
 **Table: Conditional and marginal dependence tests utilized by MRGNtrio**  
 *A reference table of the conditional and marginal dependence tests used to determine which model is supported by the data. The first three models each have two possible configurations. Coefficients β₁₁ and β₁₂ are from regression (Eq. 1), and coefficients β₂₁ and β₂₂ from regression (Eq. 2). These coefficients test conditional independence. Correlations r_{V, T₁} and r_{V, T₂} test marginal independence.*
 
-| Model | Configuration                                | β₁₁    | β₁₂    | β₂₁    | β₂₂    | r_{V,T₁} | r_{V,T₂} |
+| Model | Configuration                                | β₁₁    | β₁₂    | β₂₁    | β₂₂    | $r_{V, T_1}$ | $r_{V,T_2}$ |
 |-------|----------------------------------------------|--------|--------|--------|--------|-----------|-----------|
 |       | **Dependence Relation**                      | T₁ ⫫ V | T₁ ⫫ T₂ | T₂ ⫫ V | T₂ ⫫ T₁ | V ⫫ T₁    | V ⫫ T₂    |
 |       | **Conditioned on**                           | T₂, **U** | V, **U** | T₁, **U** | V, **U** | --        | --        |
